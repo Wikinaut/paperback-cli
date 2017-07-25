@@ -47,7 +47,7 @@ uchar alpha[] = {
   0xee, 0x5b, 0xb6, 0xeb, 0x51, 0xa2, 0xc3, 0x00
 };
 
-uchar index[] = {
+uchar _index[] = {
    255,    0,    1,   99,    2,  198,  100,  106,
      3,  205,  199,  188,  101,  126,  107,   42,
      4,  141,  206,   78,  200,  212,  189,  225,
@@ -95,7 +95,7 @@ void Encode8(uchar *data,uchar *bb,int pad) {
   uchar feedback;
   memset(bb,0,32);
   for (i=0; i<223-pad; i++) {
-    feedback=index[data[i]^bb[0]];
+    feedback=_index[data[i]^bb[0]];
     if (feedback!=255) {
       for (j=1; j<32; j++) {
 	bb[j]^=alpha[(feedback+poly[32-j])%255];
@@ -123,14 +123,14 @@ int Decode8(uchar *data,int *eras_pos,int no_eras,int pad) {
       if (s[i]==0)
 	s[i]=data[j];
       else
-	s[i]=data[j]^alpha[(index[s[i]]+(112+i)*11)%255];
+	s[i]=data[j]^alpha[(_index[s[i]]+(112+i)*11)%255];
       ;
     };
   };
   syn_error=0;
   for (i=0; i<32; i++) {
     syn_error|=s[i];
-    s[i]=index[s[i]]; };
+    s[i]=_index[s[i]]; };
   if (syn_error==0) {
     count=0; goto finish; };
   memset(lambda+1,0,32);
@@ -140,22 +140,22 @@ int Decode8(uchar *data,int *eras_pos,int no_eras,int pad) {
     for (i=1; i<no_eras; i++) {
       u=(uchar)((11*(254-eras_pos[i]))%255);
       for (j=i+1; j>0; j--) {
-	tmp=index[lambda[j-1]];
+	tmp=_index[lambda[j-1]];
 	if (tmp!=255) lambda[j]^=alpha[(u+tmp)%255];
       };
     };
   };
   for (i=0; i<33; i++)
-    b[i]=index[lambda[i]];
+    b[i]=_index[lambda[i]];
   r=el=no_eras;
   while (++r<=32) {
     discr_r=0;
     for (i=0; i<r; i++) {
       if ((lambda[i]!=0) && (s[r-i-1]!=255)) {
-	discr_r^=alpha[(index[lambda[i]]+s[r-i-1])%255];
+	discr_r^=alpha[(_index[lambda[i]]+s[r-i-1])%255];
       };
     };
-    discr_r=index[discr_r];
+    discr_r=_index[discr_r];
     if (discr_r==255) {
       memmove(b+1,b,32);
       b[0]=255; }
@@ -171,7 +171,7 @@ int Decode8(uchar *data,int *eras_pos,int no_eras,int pad) {
       if (2*el<=r+no_eras-1) {
 	el=r+no_eras-el;
 	for (i=0; i<=32; i++)
-	  b[i]=(uchar)(lambda[i]==0?255:(index[lambda[i]]-discr_r+255)%255);
+	  b[i]=(uchar)(lambda[i]==0?255:(_index[lambda[i]]-discr_r+255)%255);
         ; }
       else {
 	memmove(b+1,b,32);
@@ -181,7 +181,7 @@ int Decode8(uchar *data,int *eras_pos,int no_eras,int pad) {
   };
   deg_lambda=0;
   for (i=0; i<33; i++) {
-    lambda[i]=index[lambda[i]];
+    lambda[i]=_index[lambda[i]];
     if (lambda[i]!=255) deg_lambda=i; };
   memcpy(reg+1,lambda+1,32);
   count=0;
@@ -209,7 +209,7 @@ int Decode8(uchar *data,int *eras_pos,int no_eras,int pad) {
 	tmp^=alpha[(s[i-j]+lambda[j])%255];
       };
     };
-    omega[i]=index[tmp];
+    omega[i]=_index[tmp];
   };
   for (j=count-1; j>=0; j--) {
     num1=0;
@@ -226,7 +226,7 @@ int Decode8(uchar *data,int *eras_pos,int no_eras,int pad) {
       };
     };
     if (num1!=0 && loc[j]>=pad) {
-      data[loc[j]-pad]^=alpha[(index[num1]+index[num2]+255-index[den])%255];
+      data[loc[j]-pad]^=alpha[(_index[num1]+_index[num2]+255-_index[den])%255];
     };
   };
 finish:
