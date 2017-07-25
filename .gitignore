@@ -1,0 +1,17 @@
+# files from compilation
+*.o
+*.gch
+*.exe
+
+*.log
+
+# git merge backups
+*_BACKUP*
+*_BASE*
+*_LOCAL*
+*_REMOTE*
+*.orig
+
+# executables
+paperback-cli
+
