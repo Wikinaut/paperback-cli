@@ -27,8 +27,11 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            busy;                 // In work
   // General file data.
   char           name[64];             // File name - may have all 64 chars
-  //FILETIME       modified;             // Time of last file modification
-  time_t         modified;
+  #ifdef _WIN32
+  FILETIME       modified;             // Time of last file modification
+  #elif __linux__
+  time_t         modified;             // Time of last file modification
+  #endif
   ulong          attributes;           // Basic file attrributes
   ulong          datasize;             // Size of (compressed) data
   ulong          pagesize;             // Size of (compressed) data on page
