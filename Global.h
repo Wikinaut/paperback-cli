@@ -19,6 +19,9 @@
 
 #include <ctime>
 #include <string>
+#ifdef __WIN32
+#include <windows.h>
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// GENERAL DEFINITIONS //////////////////////////////
@@ -30,7 +33,7 @@ typedef unsigned long  ulong;
 
 #define TEXTLEN        256             // Maximal length of strings
 
-#ifdef _WIN32
+#ifdef __WIN32
 #define MAXPATH 247
 #define MAXFILE 255
 //!!! Find values for the following
