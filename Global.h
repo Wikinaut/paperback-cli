@@ -18,7 +18,7 @@
  */
 
 #include <ctime>
-
+#include <string>
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// GENERAL DEFINITIONS //////////////////////////////
@@ -144,3 +144,5 @@ int       marginbottom;         // Bottom printer page margin
 
 void   Options(void);
 
+void Reporterror (std::string);
+void Message (std::string);
