@@ -30,7 +30,7 @@ int Compress(uchar *bufin,ulong nbufin,uchar *bufout,ulong nbufout) {
   ushort symbol;
   if (bufin==NULL || bufout==NULL || nbufin<=0 || nbufout<=sizeof(long))
     return -1;                         // Bad input parameters
-  cdict=(t_centry *)malloc((1<<DBITLEN)*sizeof(t_centry));
+  cdict=(t_centry *)calloc((1<<DBITLEN)*sizeof(t_centry));
   if (cdict==NULL) return -1;
   for (i=0; i<(1<<DBITLEN); i++)
     cdict[i].code=(ushort)i;
@@ -128,7 +128,7 @@ int Decompress(uchar *bufin,ulong nbufin,uchar *bufout,ulong nbufout) {
   uint firstchar;
   if (bufin==NULL || bufout==NULL || nbufin<=sizeof(long) || nbufout<=0)
     return -1;                         // Bad input parameters
-  ddict=(t_dentry *)malloc((1<<DBITLEN)*sizeof(t_dentry));
+  ddict=(t_dentry *)calloc((1<<DBITLEN)*sizeof(t_dentry));
   if (ddict==NULL) return -1;
   for (i=0; i<(1<<NBITS); i++) ddict[i].character=(ushort)i;
   ndict=1<<NBITS;

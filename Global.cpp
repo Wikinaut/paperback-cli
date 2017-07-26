@@ -11,3 +11,4 @@ void Reporterror(const string &input) {
 void Message(const string &input, int progress) {
     cout << input << " @ " << progress << endl;
 }
+
