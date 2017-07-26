@@ -22,6 +22,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// GENERAL DEFINITIONS //////////////////////////////
+
 typedef unsigned char  uchar;
 typedef unsigned short ushort;
 typedef unsigned int   uint;
@@ -29,6 +30,20 @@ typedef unsigned long  ulong;
 
 #define TEXTLEN        256             // Maximal length of strings
 
+#ifdef _WIN32
+#define MAXPATH 247
+#define MAXFILE 255
+//!!! Find values for the following
+#define MAXDIR 1
+#define MAXEXT 3
+
+#elif __linux__
+#define MAXPATH 4096
+#define MAXFILE 255
+//!!! Find values for the following
+#define MAXDIR 1
+#define MAXEXT 4094
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// DATA PROPERTIES ////////////////////////////////
@@ -100,4 +115,32 @@ typedef struct t_superblock {          // Identification block in memory
   char           name[64];             // File name - may have all 64 chars
   int            ngroup;               // Actual NGROUP on the page
 } t_superblock;
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////     OPTIONS     ///////////////////////////////
+
+// All unique
+char      infile[MAXPATH];      // Last selected file to read
+char      outbmp[MAXPATH];      // Last selected bitmap to save
+char      inbmp[MAXPATH];       // Last selected bitmap to read
+char      outfile[MAXPATH];     // Last selected data file to save
+
+// All unique
+int       dpi;                  // Dot raster, dots per inch
+int       dotpercent;           // Dot size, percent of dpi
+int       redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+int       printheader;          // Print header and footer
+int       printborder;          // Border around bitmap
+int       autosave;             // Autosave completed files
+int       bestquality;          // Determine best quality
+
+// All unique
+int       marginunits;          // 0:undef, 1:inches, 2:millimeters
+int       marginleft;           // Left printer page margin
+int       marginright;          // Right printer page margin
+int       margintop;            // Top printer page margin
+int       marginbottom;         // Bottom printer page margin
+
+void   Options(void);
 
