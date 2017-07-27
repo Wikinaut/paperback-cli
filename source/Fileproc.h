@@ -21,10 +21,11 @@
 
 
 
-
+#include "Global.h"
 #include <string>
-
-
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 typedef struct t_fproc {               // Descriptor of processed file
   int            busy;                 // In work

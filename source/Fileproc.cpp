@@ -284,10 +284,16 @@ int Finishpage(int ngood,int nbad,ulong nrestored) {
 int Saverestoredfile(int force) {
   int n,success;
   ushort filecrc;
-  ulong l,length;
+  ulong length;
   uchar *bufout,*data,*tempdata;
   t_fproc *pf;
+  #ifdef _WIN32
+  HANDLE hfile;
+  uint l;
+  #elif __linux__
   std::string hfile;
+  ulong l;
+  #endif
   pf=&fproc;
   if (pf->busy==0 || pf->nblock==0)
     return -1;                         // Index points to unused descriptor
