@@ -18,14 +18,10 @@
 #ifndef BITMAP_H
 #define BITMAP_H
 
-
-
-
 #include <cstdint>
 
-
-
 #define BI_RGB 16 //bitmap value for uncompressed color data
+
 
 
 

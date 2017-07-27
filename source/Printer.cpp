@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <cstring>
 #include <time.h>
 
 #include "Printer.h"
@@ -32,6 +31,7 @@
 
 
 
+t_printdata printdata;          // extern
 
 // Service function, puts block of data to bitmap as a grid of 32x32 dots in
 // the position with given index. Bitmap is treated as a continuous line of
@@ -320,7 +320,7 @@ static void Printnextpage(t_printdata *print) {
       FILE *f = fopen(print -> outbmp, "wb");
       if (f == NULL) {
         Reporterror("can not open file for writing");
-        Stopprinting(print);
+        //Stopprinting(print);
         return;
       }
 
@@ -352,7 +352,7 @@ static void Printnextpage(t_printdata *print) {
       fclose(f);
       if (success==0) {
         Reporterror("Unable to save bitmap");
-        Stopprinting(print);
+        //Stopprinting(print);
         return;
       };
     };
@@ -365,7 +365,7 @@ static void Printnextpage(t_printdata *print) {
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
 void Printfile(char *path,char *bmp) {
   // Stop printing of previous file, if any.
-  Stopprinting(&printdata);
+  //Stopprinting(&printdata);
   // Prepare descriptor.
   memset(&printdata,0,sizeof(printdata));
   strncpy(printdata.infile,path,MAXPATH-1);

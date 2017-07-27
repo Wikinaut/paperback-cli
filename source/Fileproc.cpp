@@ -31,16 +31,20 @@
 #include <algorithm>
 #include <cstring>
 #include <math.h>
-
 #include "Fileproc.h"
 #include "Resource.h"
-
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
 #include <cstdio>
 #include <sys/stat.h>
 #endif
+
+
+
+
+
+t_fproc   fproc;         // extern
 
 
 // Clears descriptor of processed file
@@ -265,14 +269,19 @@ int Finishpage(int ngood,int nbad,ulong nrestored) {
   if (nrempages<8)
     pf->rempages[nrempages]=0;
   //Updatefileinfo(slot,pf); //GUI
-  if (pf->ndata==pf->nblock) {
+  /*if (pf->ndata==pf->nblock) {
     if (autosave==0)
       Message("File restored. Press \"Save\" to save it to disk",0);
     else {
       Message("File complete",0);
       Saverestoredfile(0);
     };
+  };*/
+  if (pf->ndata != pf->nblock) {
+      Message("File complete",0);
+      Saverestoredfile(0);
   };
+
   return 0; ////////////////////////////////////////////////////////////////////
 };
 

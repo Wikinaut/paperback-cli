@@ -1,6 +1,31 @@
-#include "cxxopts.hpp"
+/*
+ * =====================================================================================
+ *
+ *       Filename:  main.cpp
+ *
+ *    Description:  Cross-platform command line version of Oleh Yuchuk's Paperbak, a 
+ *                  (relatively) high-density paper backup solution
+ *
+ *        Version:  1.2
+ *        Created:  07/27/2017 03:04:03 PM
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  scuti@teknik.io
+ *
+ * =====================================================================================
+ */
+#include <stdlib.h>
 #include <iostream>
+#include "cxxopts.hpp"
+#include "Decoder.h"
+#include "Printer.h"
+
 using namespace std;
+
+
+
+
 
 // redundancy 1 to 10
 // dot size 50 to 100

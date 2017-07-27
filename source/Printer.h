@@ -18,20 +18,15 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
-
-
-
 #include <cstring>
 #include <string>
-
 #include "Global.h"
 #ifdef __linux__
 #include "Bitmap.h"
 #endif
 
-
-
 #define PACKLEN        65536           // Length of data read buffer 64 K
+
 
 
 
@@ -92,8 +87,8 @@ typedef struct t_printdata {           // Print control structure
 
 
 //uniques (should not have copies of)
-int       resx,resy;            // Printer resolution, dpi (may be 0!)
-t_printdata printdata;          // Print control structure
+extern int       resx,resy;            // Printer resolution, dpi (may be 0!)
+extern t_printdata printdata;          // Print control structure
 
 void   Initializeprintsettings(void);
 void   Closeprintsettings(void);

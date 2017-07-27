@@ -28,27 +28,14 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-//#include <windows.h>
-//#include <commctrl.h>
-#include <stdio.h>
-//#include <dir.h>
-//#include <mem.h>
-#include <math.h>
-//#include "twain.h"
-//#include "BZLIB\bzlib.h"
-//#include "aes\aes.h"
-//#pragma hdrstop
-
-
 #include <algorithm>
 #include <cstring>
-
-//#include "paperbak.h"
+#include <stdio.h>
+#include <math.h>
 #include "Crc16.h"
 #include "Decoder.h"
 #include "Ecc.h"
 #include "Fileproc.h"
-#include "Resource.h"
 #ifdef __linux__
 #include "Bitmap.h"
 #endif
@@ -59,6 +46,10 @@
 #define SUBDY          8               // Y size of subblock, pixels
 
 
+
+
+char      inbmp[MAXPATH];       // extern
+t_procdata procdata;            // extern
 
 // Given hystogramm h of length n points, locates black peaks and determines
 // phase and step of the grid.
@@ -1027,8 +1018,8 @@ void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
   pdata->sizey=sizey;
   pdata->blockborder=0.0;              // Autoselect
   pdata->step=1;
-  if (bestquality)
-    pdata->mode|=M_BEST;
+  //if (bestquality)
+  //  pdata->mode|=M_BEST;
   //Updatebuttons(); //GUI
 };
 

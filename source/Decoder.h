@@ -19,15 +19,13 @@
 #ifndef DECODER_H
 #define DECODER_H
 
-
-
-
 #include <string>
 #include "Global.h"
 
-
-
 #define M_BEST         0x00000001      // Search for best possible quality
+
+
+
 
 typedef struct t_procdata {            // Descriptor of processed data
   int            step;                 // Next data processing step (0 - idle)
@@ -71,9 +69,9 @@ typedef struct t_procdata {            // Descriptor of processed data
 } t_procdata;
 
 //unique 
-int       orientation;          // Orientation of bitmap (-1: unknown)
+extern int       orientation;          // Orientation of bitmap (-1: unknown)
 //unique 
-t_procdata procdata;            // Descriptor of processed data
+extern t_procdata procdata;            // Descriptor of processed data
 
 void   Nextdataprocessingstep(t_procdata *pdata);
 void   Freeprocdata(t_procdata *pdata);

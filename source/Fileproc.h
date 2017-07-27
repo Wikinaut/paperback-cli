@@ -19,13 +19,14 @@
 #ifndef FILEPROC_H
 #define FILEPROC_H
 
-
-
-#include "Global.h"
 #include <string>
+#include "Global.h"
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+
+
 
 typedef struct t_fproc {               // Descriptor of processed file
   int            busy;                 // In work
@@ -62,7 +63,7 @@ typedef struct t_fproc {               // Descriptor of processed file
 } t_fproc;
 
 //unique 
-t_fproc   fproc;         // Processed file
+extern t_fproc   fproc;         // Processed file
 
 void   Closefproc();
 int    Startnextpage(t_superblock *superblock);

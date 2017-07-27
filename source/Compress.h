@@ -20,21 +20,16 @@
 #define COMPRESS_H
 
 
-
-
 #include "Global.h"
-
-
 
 #define DBITLEN        16              // Max. dictionary size is 2**DBITLEN
 #define NBITS          8               // We deal with bytes, aren't we?
-
-
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned short ushort;
+
 
 
 

@@ -27,6 +27,10 @@
 #include <windows.h>
 #endif
 
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// GENERAL DEFINITIONS //////////////////////////////
 
@@ -132,28 +136,28 @@ typedef struct t_superblock {          // Identification block in memory
 ////////////////////////////////     OPTIONS     ///////////////////////////////
 
 // All unique
-char      infile[MAXPATH];      // Last selected file to read
-char      outbmp[MAXPATH];      // Last selected bitmap to save
-char      inbmp[MAXPATH];       // Last selected bitmap to read
-char      outfile[MAXPATH];     // Last selected data file to save
+extern char      infile[MAXPATH];      // Last selected file to read
+extern char      outbmp[MAXPATH];      // Last selected bitmap to save
+extern char      inbmp[MAXPATH];       // Last selected bitmap to read
+extern char      outfile[MAXPATH];     // Last selected data file to save
 
 // All unique
-int       dpi;                  // Dot raster, dots per inch
-int       dotpercent;           // Dot size, percent of dpi
-int       redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
-int       printheader;          // Print header and footer
-int       printborder;          // Border around bitmap
-int       autosave;             // Autosave completed files
-int       bestquality;          // Determine best quality
+extern int       dpi;                  // Dot raster, dots per inch
+extern int       dotpercent;           // Dot size, percent of dpi
+extern int       redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+extern int       printheader;          // Print header and footer
+extern int       printborder;          // Border around bitmap
+extern int       autosave;             // Autosave completed files
+extern int       bestquality;          // Determine best quality
 
 // All unique
-int       marginunits;          // 0:undef, 1:inches, 2:millimeters
-int       marginleft;           // Left printer page margin
-int       marginright;          // Right printer page margin
-int       margintop;            // Top printer page margin
-int       marginbottom;         // Bottom printer page margin
+extern int       marginunits;          // 0:undef, 1:inches, 2:millimeters
+extern int       marginleft;           // Left printer page margin
+extern int       marginright;          // Right printer page margin
+extern int       margintop;            // Top printer page margin
+extern int       marginbottom;         // Bottom printer page margin
 
-void   Options(void);
+//void   Options(void);
 
 
 
