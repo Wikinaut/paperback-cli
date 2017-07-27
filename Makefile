@@ -1,23 +1,12 @@
 EX=paperback-cli
+SDIR=./source
 CC=g++
-CFLAGS=-std=c++11 
+CFLAGS=-std=c++11 -I"$(SDIR)" -I"$(SDIR)/cxxopts/include"
 
 all: main
 
-main: Compress.o Decode.o
-	$(CC) $^ main.cpp $(CFLAGS) -o $(EX) 2>error8.log
-
-Compress.o: Compress.cpp
-	$(CC) -c $^ $(CFLAGS)
-
-Decode.o: Decode.cpp
-	$(CC) -c $^ $(CFLAGS)
-
-Crc16.o: Crc16.cpp
-	$(CC) -c $^ $(CFLAGS)
-
-Ecc.o: Ecc.cpp
-	$(CC) -c $^ $(CFLAGS)
+main: $(SDIR)/main.cpp $(SDIR)/Decoder.cpp $(SDIR)/Printer.cpp $(SDIR)/Fileproc.cpp $(SDIR)/Ecc.cpp $(SDIR)/Crc16.cpp 
+	$(CC) $^ $(CFLAGS) -o $(EX)
 
 
 clean:
