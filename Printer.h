@@ -1,17 +1,51 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  Printer.h
+ *
+ *    Description:  Functions to create a bitmap
+ *
+ *        Version:  1.2
+ *        Created:  07/26/2017 11:44:34 PM
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  Oleh Yuschuk
+ *    Modified By:  suhrke@teknik.io
+ *
+ * =====================================================================================
+ */
 #ifndef PRINTER_H
 #define PRINTER_H
 
+
+
+
+#include <cstring>
+#include <string>
+
 #include "Global.h"
+#ifdef __linux__
+#include "Bitmap.h"
+#endif
+
 
 
 #define PACKLEN        65536           // Length of data read buffer 64 K
+
+
 
 typedef struct t_printdata {           // Print control structure
   int            step;                 // Next data printing step (0 - idle)
   char           infile[MAXPATH];      // Name of input file
   char           outbmp[MAXPATH];      // Name of output bitmap (empty: paper)
+  #ifdef _WIN32
   HANDLE         hfile;                // Handle of input file
   FILETIME       modified;             // Time of last file modification
+  #elif __linux
+  std::string    hfile;                // Handle of input file
+  time_t         modified;             // Time of last file modification
+  #endif
   ulong          attributes;           // File attributes
   ulong          origsize;             // Original file size, bytes
   ulong          readsize;             // Amount of data read from file so far
@@ -26,18 +60,18 @@ typedef struct t_printdata {           // Print control structure
   uchar          *buf;                 // Buffer for compressed file
   ulong          bufsize;              // Size of buf, bytes
   uchar          *readbuf;             // Read buffer, PACKLEN bytes long
-//  bz_stream      bzstream;             // Compression control structure
+  //bz_stream      bzstream;             // Compression control structure
   int            bufcrc;               // 16-bit CRC of (packed) data in buf
   t_superdata    superdata;            // Identification block on paper
-  HDC            dc;                   // Printer device context
+  //HDC            dc;                   // Printer device context
   int            frompage;             // First page to print (0-based)
   int            topage;               // Last page (0-based, inclusive)
   int            ppix;                 // Printer X resolution, pixels per inch
   int            ppiy;                 // Printer Y resolution, pixels per inch
   int            width;                // Page width, pixels
   int            height;               // Page height, pixels
-  HFONT          hfont6;               // Font 1/6 inch high
-  HFONT          hfont10;              // Font 1/10 inch high
+  //HFONT          hfont6;               // Font 1/6 inch high
+  //HFONT          hfont10;              // Font 1/10 inch high
   int            extratop;             // Height of title line, pixels
   int            extrabottom;          // Height of info line, pixels
   int            black;                // Palette index of dots colour
@@ -49,7 +83,7 @@ typedef struct t_printdata {           // Print control structure
   int            px,py;                // Dot size, pixels
   int            nx,ny;                // Grid dimensions, blocks
   int            border;               // Border around the data grid, pixels
-  HBITMAP        hbmp;                 // Handle of memory bitmap
+  //HBITMAP        hbmp;                 // Handle of memory bitmap
   uchar          *dibbits;             // Pointer to DIB bits
   uchar          *drawbits;            // Pointer to file bitmap bits
   uchar          bmi[sizeof(BITMAPINFO)+256*sizeof(RGBQUAD)]; // Bitmap info
@@ -58,7 +92,6 @@ typedef struct t_printdata {           // Print control structure
 
 
 //uniques (should not have copies of)
-PAGESETUPDLG pagesetup;         // Structure with printer page settings
 int       resx,resy;            // Printer resolution, dpi (may be 0!)
 t_printdata printdata;          // Print control structure
 
