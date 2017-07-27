@@ -276,17 +276,16 @@ static void Printnextpage(t_printdata *print) {
     if (print->outbmp[0]=='\0') {
       if (print->printheader) {
         // Print title at the top of the page.
-#ifdef _WIN32
+      #ifdef _WIN32
         Filetimetotext(&print->modified,ts,sizeof(ts));
-#elif __linux
-        //!!! print modify time
+      #elif __linux
         struct tm * timeinfo;
         timeinfo = localtime (&print->modified); 
       strftime(ts, strlen(ts), "%D %l:%M %p", timeinfo);
       if(ts[0] == '0') {
         memmove(ts, ts+1, strlen(ts));
-      }
       #endif
+      }
       n=sprintf(s,"%.64s [%s, %i bytes] - page %i of %i",
         print->superdata.name,ts,print->origsize,print->frompage+1,npages);
       //SelectObject(print->dc,print->hfont6); //!!! bitmap output instead of printing
