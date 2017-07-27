@@ -21,6 +21,7 @@
 #define GLOBAL_H
 
 #include <ctime>
+#include <iostream>
 #include <string>
 #ifdef __WIN32
 #include <windows.h>
@@ -154,10 +155,30 @@ int       marginbottom;         // Bottom printer page margin
 
 void   Options(void);
 
-void Reporterror (std::string);
-void Message (std::string, int);
+
+
+inline void Reporterror(const std::string &input) {
+  std::cerr << input << std::endl;
+}
+
+
+inline void Message(const std::string &input, int progress) {
+  std::cout << input << " @ " << progress << std::endl;
+}
+
+
+// Converts file date and time into the text according to system defaults and
+// places into the string s of length n. Returns number of characters in s.
 #ifdef _WIN32
-int    Filetimetotext(FILETIME *fttime,char *s,int n);
+inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
+  int l;
+  SYSTEMTIME sttime;
+  FileTimeToSystemTime(fttime,&sttime);
+  l=GetDateFormat(LOCALE_USER_DEFAULT,DATE_SHORTDATE,&sttime,NULL,s,n);
+  s[l-1]=' ';                          // Yuck, that's Windows
+  l+=GetTimeFormat(LOCALE_USER_DEFAULT,TIME_NOSECONDS,&sttime,NULL,s+l,n-l);
+  return l;
+};
 #endif
 
 #endif //GLOBAL_H
