@@ -16,6 +16,9 @@
  * =====================================================================================
  */
 
+#ifndef FILEPROC_H
+#define FILEPROC_H
+
 
 
 
@@ -65,4 +68,6 @@ int    Startnextpage(t_superblock *superblock);
 int    Addblock(t_block *block);
 int    Finishpage(int ngood,int nbad,ulong nrestored);
 int    Saverestoredfile(int force);
+
+#endif //FILEPROC_H
 

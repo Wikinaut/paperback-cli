@@ -17,6 +17,9 @@
  * =====================================================================================
  */
 
+#ifndef GLOBAL_H
+#define GLOBAL_H
+
 #include <ctime>
 #include <string>
 #ifdef __WIN32
@@ -156,4 +159,6 @@ void Message (std::string, int);
 #ifdef _WIN32
 int    Filetimetotext(FILETIME *fttime,char *s,int n);
 #endif
+
+#endif //GLOBAL_H
 

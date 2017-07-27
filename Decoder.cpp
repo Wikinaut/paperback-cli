@@ -44,6 +44,7 @@
 #include <cstring>
 
 //#include "paperbak.h"
+#include "Bitmap.h"
 #include "Crc16.h"
 #include "Decoder.h"
 #include "Ecc.h"
@@ -54,6 +55,8 @@
 #define NPEAK          32              // Maximal number of peaks
 #define SUBDX          8               // X size of subblock, pixels
 #define SUBDY          8               // Y size of subblock, pixels
+
+
 
 // Given hystogramm h of length n points, locates black peaks and determines
 // phase and step of the grid.
@@ -165,6 +168,8 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
   return moment/sn;
 };
 
+
+
 // Given grid of recognized dots, extracts saved information. Returns number of
 // corrected erorrs (0..16) on success and 17 if information is not readable.
 static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
@@ -266,6 +271,8 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
   return bestanswer;
 };
 
+
+
 // Determines rough grid position.
 static void Getgridposition(t_procdata *pdata) {
   int i,j,nx,ny,stepx,stepy,sizex,sizey;
@@ -328,6 +335,8 @@ static void Getgridposition(t_procdata *pdata) {
   // Step finished.
   pdata->step++;
 };
+
+
 
 // Selects search range, determines grid intensity and estimates sharpness.
 static void Getgridintensity(t_procdata *pdata) {
@@ -396,6 +405,8 @@ static void Getgridintensity(t_procdata *pdata) {
   pdata->step++;
 };
 
+
+
 // Find angle and step of vertical grid lines.
 static void Getxangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex;
@@ -460,6 +471,8 @@ static void Getxangle(t_procdata *pdata) {
   pdata->step++;
 };
 
+
+
 // Find angle and step of horizontal grid lines. Very similar to Getxangle().
 static void Getyangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex,sizey;
@@ -522,6 +535,8 @@ static void Getyangle(t_procdata *pdata) {
   // Step finished.
   pdata->step++;
 };
+
+
 
 // Prepare data and allocate memory for data decoding.
 static void Preparefordecoding(t_procdata *pdata) {
@@ -613,6 +628,8 @@ static void Preparefordecoding(t_procdata *pdata) {
   // Step finished.
   pdata->step++;
 };
+
+
 
 // The most important routine, converts scanned blocks into data. Used both by
 // data decoder and by block display. Returns -1 if block cannot be located,
@@ -827,6 +844,8 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
   return answer;
 };
 
+
+
 static void Decodenextblock(t_procdata *pdata) {
   int answer,ngroup,percent;
   char s[TEXTLEN];
@@ -897,6 +916,8 @@ finish:
   };
 };
 
+
+
 // Passes gathered data to file processor and frees resources allocated by call
 // to Preparefordecoding().
 static void Finishdecoding(t_procdata *pdata) {
@@ -916,6 +937,8 @@ static void Finishdecoding(t_procdata *pdata) {
   // Page processed.
   pdata->step=0;
 };
+
+
 
 // Extracts data from the bitmap in small slices. To start decoding, pass
 // bitmap to Startbitmapdecoding().
@@ -961,6 +984,8 @@ void Nextdataprocessingstep(t_procdata *pdata) {
   //if (pdata->step==0) Updatebuttons(); // Right or wrong, decoding finished
 };
 
+
+
 // Frees resources allocated by pdata.
 void Freeprocdata(t_procdata *pdata) {
   // Free data.
@@ -986,6 +1011,8 @@ void Freeprocdata(t_procdata *pdata) {
   };
 };
 
+
+
 // Starts decoding of the new bitmap. If previous decoding is still running,
 // it will be stopped and all intermediate results will be discarded.
 void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
@@ -1003,11 +1030,157 @@ void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
   //Updatebuttons(); //GUI
 };
 
+
+
 // Stops bitmap decoding. Data decoded so far is discarded, but resources
 // (especially, bitmap) remain in memory.
 void Stopbitmapdecoding(t_procdata *pdata) {
   if (pdata->step!=0) {
     pdata->step=0;
   };
+};
+
+
+
+// Opens and decodes bitmap. Returns 0 on success and -1 on error.
+int Decodebitmap(char *path) {
+  int i,size;
+  char s[TEXTLEN+MAXPATH],fil[MAXFILE],ext[MAXEXT];
+  uchar *data,buf[sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)];
+  FILE *f;
+  BITMAPFILEHEADER *pbfh;
+  BITMAPINFOHEADER *pbih;
+  //HCURSOR prevcursor; //GUI
+  // Ask for file name.
+  //!!! REQUIRE input bmp exists before this can be run
+  //if (path==NULL || path[0]=='\0') {
+  /*if (Selectinbmp()!=0) {
+    return -1;
+  }
+  else { */
+  strncpy(inbmp,path,sizeof(inbmp));
+  inbmp[sizeof(inbmp)-1]='\0'; 
+  //}
+  //fnsplit(inbmp,NULL,NULL,fil,ext); //!!! parse out filename from path?
+  sprintf(s,"Reading %s%s...",fil,ext);
+  Message(s,0);
+  //Updatebuttons(); //GUI
+  // Open file and verify that this is the valid bitmap of known type.
+  f=fopen(inbmp,"rb");
+  if (f==NULL) {                       // Unable to open file
+    sprintf(s,"Unable to open %s%s",fil,ext);
+    Reporterror(s);
+    return -1; };
+  // Reading 100-MB bitmap may take many seconds. Let's inform user by changing
+  // mouse pointer.
+  //prevcursor=SetCursor(LoadCursor(NULL,IDC_WAIT));
+  i=fread(buf,1,sizeof(buf),f);
+  //SetCursor(prevcursor);
+  if (i!=sizeof(buf)) {                // Unable to read file
+    sprintf(s,"Unable to read %s%s",fil,ext);
+    Reporterror(s);
+    fclose(f); return -1; };
+  pbfh=(BITMAPFILEHEADER *)buf;
+  pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
+  if (pbfh->bfType!='BM' ||
+    pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ||
+    (pbih->biBitCount!=8 && pbih->biBitCount!=24) ||
+    (pbih->biBitCount==24 && pbih->biClrUsed!=0) ||
+    pbih->biCompression!=BI_RGB ||
+    pbih->biWidth<128 || pbih->biWidth>32768 ||
+    pbih->biHeight<128 || pbih->biHeight>32768
+  ) {                                  // Invalid bitmap type
+    sprintf(s,"Unsupported bitmap type: %s%s",fil,ext);
+    Reporterror(s);
+    fclose(f); return -1; };
+  // Allocate buffer and read file.
+  fseek(f,0,SEEK_END);
+  size=ftell(f)-sizeof(BITMAPFILEHEADER);
+  data=(uchar *)malloc(size);
+  if (data==NULL) {                    // Unable to allocate memory
+    Reporterror("Low memory");
+    fclose(f); return -1; };
+  fseek(f,sizeof(BITMAPFILEHEADER),SEEK_SET);
+  i=fread(data,1,size,f);
+  fclose(f);
+  if (i!=size) {                       // Unable to read bitmap
+    sprintf(s,"Unable to read %s%s",fil,ext);
+    Reporterror(s);
+    free(data);
+    return -1; };
+  // Process bitmap.
+  ProcessDIB(data,pbfh->bfOffBits-sizeof(BITMAPFILEHEADER));
+  free(data);
+  return 0;
+};
+
+
+
+// Processes data from the scanner.
+int ProcessDIB(void *hdata,int offset) {
+  int i,j,sizex,sizey,ncolor;
+  uchar scale[256],*data,*pdata,*pbits;
+  BITMAPINFO *pdib;
+  //pdib=(BITMAPINFO *)GlobalLock(hdata);
+  pdib =(BITMAPINFO *)hdata;
+  if (pdib==NULL)
+    return -1;                         // Something is wrong with this DIB
+  // Check that bitmap is more or less valid.
+  if (pdib->bmiHeader.biSize!=sizeof(BITMAPINFOHEADER) ||
+    pdib->bmiHeader.biPlanes!=1 ||
+    (pdib->bmiHeader.biBitCount!=8 && pdib->bmiHeader.biBitCount!=24) ||
+    (pdib->bmiHeader.biBitCount==24 && pdib->bmiHeader.biClrUsed!=0) ||
+    pdib->bmiHeader.biCompression!=BI_RGB ||
+    pdib->bmiHeader.biWidth<128 || pdib->bmiHeader.biWidth>32768 ||
+    pdib->bmiHeader.biHeight<128 || pdib->bmiHeader.biHeight>32768
+  ) {
+    //GlobalUnlock(hdata);
+    return -1; };                      // Not a known bitmap!
+  sizex=pdib->bmiHeader.biWidth;
+  sizey=pdib->bmiHeader.biHeight;
+  ncolor=pdib->bmiHeader.biClrUsed;
+  // Convert bitmap to 8-bit grayscale. Note that scan lines are DWORD-aligned.
+  data=(uchar *)malloc(sizex*sizey);
+  if (data==NULL) {
+    //GlobalUnlock(hdata);
+    return -1; };
+  if (pdib->bmiHeader.biBitCount==8) {
+    // 8-bit bitmap with palette.
+    if (ncolor>0) {
+      for (i=0; i<ncolor; i++) {
+        scale[i]=(uchar)((pdib->bmiColors[i].rgbBlue+
+        pdib->bmiColors[i].rgbGreen+pdib->bmiColors[i].rgbRed)/3);
+      }; }
+    else {
+      for (i=0; i<256; i++) scale[i]=(uchar)i; };
+    if (offset==0)
+      offset=sizeof(BITMAPINFOHEADER)+ncolor*sizeof(RGBQUAD);
+    pdata=data;
+    for (j=0; j<sizey; j++) {
+      offset=(offset+3) & 0xFFFFFFFC;
+      pbits=((uchar *)(pdib))+offset;
+      for (i=0; i<sizex; i++) {
+        *pdata++=scale[*pbits++]; };
+      offset+=sizex;
+    }; }
+  else {
+    // 24-bit bitmap without palette.
+    if (offset==0)
+      offset=sizeof(BITMAPINFOHEADER)+ncolor*sizeof(RGBQUAD);
+    pdata=data;
+    for (j=0; j<sizey; j++) {
+      offset=(offset+3) & 0xFFFFFFFC;
+      pbits=((uchar *)(pdib))+offset;
+      for (i=0; i<sizex; i++) {
+        *pdata++=(uchar)((pbits[0]+pbits[1]+pbits[2])/3);
+        pbits+=3; };
+      offset+=sizex*3;
+    };
+  };
+  // Decode bitmap. This is what we are for here.
+  Startbitmapdecoding(&procdata,data,sizex,sizey);
+  // Free original bitmap and report success.
+  //GlobalUnlock(hdata);
+  return 0;
 };
 

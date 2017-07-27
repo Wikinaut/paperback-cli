@@ -1,3 +1,21 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  Compress.h
+ *
+ *    Description:  Compression functions that wrap BZLIB
+ *
+ *        Version:  1.2
+ *        Created:  07/26/2017 08:40:51 PM
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  Oleh Yuschuk
+ *    Modified By:  suhrke@teknik.io
+ *
+ * =====================================================================================
+ */
+
 #ifndef COMPRESS_H
 #define COMPRESS_H
 

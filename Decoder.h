@@ -3,7 +3,7 @@
  *
  *       Filename:  Decoder.h
  *
- *    Description:  
+ *    Description:  Decode paperbak data obtained from bitmap file
  *
  *        Version:  1.2
  *        Created:  07/26/2017 05:43:57 AM
@@ -15,6 +15,9 @@
  *
  * =====================================================================================
  */
+
+#ifndef DECODER_H
+#define DECODER_H
 
 
 
@@ -77,4 +80,8 @@ void   Freeprocdata(t_procdata *pdata);
 void   Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey);
 void   Stopbitmapdecoding(t_procdata *pdata);
 int    Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result);
+int    Decodebitmap(char *path);
+int    ProcessDIB(void *hdata,int offset);
+
+#endif //DECODER_H
 
