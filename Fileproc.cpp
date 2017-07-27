@@ -297,11 +297,7 @@ int Saverestoredfile(int force) {
   ulong l,length;
   uchar *bufout,*data,*tempdata;
   t_fproc *pf;
-  #ifdef _WIN32
-  HANDLE hfile;
-  #elif __linux__
   std::string hfile;
-  #endif
   pf=&fproc;
   if (pf->busy==0 || pf->nblock==0)
     return -1;                         // Index points to unused descriptor
@@ -369,22 +365,6 @@ if (Selectoutfile(pf->name)!=0) {    // Cancelled by user
 
 //!!! Need means of checking that output file name is valid
 
-#ifdef _WIN32 
-// Open file and save data.
-hfile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
-    CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-if (hfile==INVALID_HANDLE_VALUE) {
-  if (bufout!=NULL) free(bufout);
-  Reporterror("Unable to create file");
-  return -1; };
-WriteFile(hfile,data,length,&l,NULL);
-// Restore old modification date and time.
-SetFileTime(hfile,&pf->modified,&pf->modified,&pf->modified);
-// Close file and restore old basic attributes.
-CloseHandle(hfile);
-SetFileAttributes(outfile,pf->attributes);
-
-#elif __linux__
 // Open file and save data.
 FILE * pFile;
 pFile = fopen(hfile.c_str(), "wb");
@@ -410,9 +390,8 @@ pf->modified = fileAttributes.st_mtime;
 
 // Close file and restore old basic attributes.
 fclose(pFile);
-//!!! is it necessary to save these?
+//!!! is it necessary to save file attributes?
 //SetFileAttributes(outfile,pf->attributes);
-#endif
 
   if (bufout!=NULL) free(bufout);
 if (l!=length) {
