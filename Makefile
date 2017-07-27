@@ -12,5 +12,5 @@ msys: $(SDIR)/main.cpp $(SDIR)/Decoder.cpp $(SDIR)/Printer.cpp $(SDIR)/Fileproc.
 	$(CC) $^ $(CFLAGS) -o $(EX) -mwin32
 
 clean:
-	rm *.o *.log $(EX)
+	rm $(EX) #*.o *.log 
 
