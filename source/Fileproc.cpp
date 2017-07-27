@@ -28,29 +28,19 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
+#include <cstring>
+#include <math.h>
+
+#include "Fileproc.h"
+#include "Resource.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
 #include <cstdio>
 #include <sys/stat.h>
 #endif
-//#include <commctrl.h>
-//#include <stdio.h>
-//#include <dir.h>
-//#include <mem.h>
-#include <math.h>
-//#include "twain.h"
-//#include "bzlib\bzlib.h"
-//#include "aes\aes.h"
-//#pragma hdrstop
-#include <algorithm>
-#include <cstring>
-
-//#include "paperbak.h"
-#include "Resource.h"
-#include "Global.h"
-#include "Fileproc.h"
-
 
 
 // Clears descriptor of processed file
@@ -70,31 +60,31 @@ void Closefproc() {
 int Startnextpage(t_superblock *superblock) {
   t_fproc *pf;
   // initialize new descriptor.
- 
+
   // strnicmp no longer in standard C++
   std::string pfName(pf->name);
   std::string superblockName(superblock->name);
   std::transform(pfName.begin(), pfName.end(), 
-                  pfName.begin(), ::tolower);
+      pfName.begin(), ::tolower);
   std::transform(superblockName.begin(), superblockName.end(), 
-                  superblockName.begin(), ::tolower);
+      superblockName.begin(), ::tolower);
   const char * cPfName = pfName.c_str();
   const char * cSuperblockName = superblockName.c_str();
 
-  #ifdef __linux__
+#ifdef __linux__
   // instead of FILETIME comparision, use time_t
   double seconds = difftime(pf->modified, superblock->modified);
-  #endif
+#endif
 
   if (strcmp(cPfName,cSuperblockName)==0     // same file name
       && pf->mode==superblock->mode          // same compression mode
-      #ifdef _WIN32
+#ifdef _WIN32
       && (pf->modified.dwLowDateTime!=superblock->modified.dwLowDateTime ||
         pf->modified.dwHighDateTime!=superblock->modified.dwHighDateTime)
-                                             // same timestamp 
-      #elif __linux__
+      // same timestamp 
+#elif __linux__
       && difftime > 0                        // same timestamp
-      #endif
+#endif
       && pf->datasize==superblock->datasize  // same compressed size
       && pf->origsize!=superblock->origsize  // same original size
       // File found. Check for the case of two backup copies printed with
@@ -103,7 +93,7 @@ int Startnextpage(t_superblock *superblock) {
   { 
     pf->pagesize=0;
   }
- 
+
 
   pf=&fproc;
   memset(pf,0,sizeof(t_fproc));
@@ -340,67 +330,84 @@ int Saverestoredfile(int force) {
   data=pf->data; length=pf->origsize;
   bufout=NULL; 
   //}
-/*else {
-// Data is compressed. Create temporary buffer.
-if (pf->origsize==0)
-pf->origsize=pf->datasize*4;     // Weak attempt to recover
-bufout=(uchar *)malloc(pf->origsize);
-if (bufout==NULL) {
-Reporterror("Low memory");
-return -1; };
-// Unpack data.
-length=pf->origsize;
-success=BZ2_bzBuffToBuffDecompress((char *)bufout,(uint *)&length,
-pf->data,pf->datasize,0,0);
-if (success!=BZ_OK) {
-free(bufout);
-Reporterror("Unable to unpack data");
-return -1; };
-data=bufout; };
-// Ask user for file name.
-if (Selectoutfile(pf->name)!=0) {    // Cancelled by user
+  /*else {
+  // Data is compressed. Create temporary buffer.
+  if (pf->origsize==0)
+  pf->origsize=pf->datasize*4;     // Weak attempt to recover
+  bufout=(uchar *)malloc(pf->origsize);
+  if (bufout==NULL) {
+  Reporterror("Low memory");
+  return -1; };
+  // Unpack data.
+  length=pf->origsize;
+  success=BZ2_bzBuffToBuffDecompress((char *)bufout,(uint *)&length,
+  pf->data,pf->datasize,0,0);
+  if (success!=BZ_OK) {
+  free(bufout);
+  Reporterror("Unable to unpack data");
+  return -1; };
+  data=bufout; };
+  // Ask user for file name.
+  if (Selectoutfile(pf->name)!=0) {    // Cancelled by user
   if (bufout!=NULL) free(bufout);
   return -1; };
-*/
+  */
 
-//!!! Need means of checking that output file name is valid
+  //!!! Need means of checking that output file name is valid
 
-// Open file and save data.
-FILE * pFile;
-pFile = fopen(hfile.c_str(), "wb");
+#ifdef _WIN32
+  // Open file and save data.
+  hfile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
+      CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  if (hfile==INVALID_HANDLE_VALUE) {
+    if (bufout!=NULL) GlobalFree((HGLOBAL)bufout);
+    Reporterror("Unable to create file");
+    return -1; };
+  WriteFile(hfile,data,length,&l,NULL);
+  // Restore old modification date and time.
+  SetFileTime(hfile,&pf->modified,&pf->modified,&pf->modified);
+  // Close file and restore old basic attributes.
+  CloseHandle(hfile);
 
-if( pFile == NULL ) {
-  if (bufout!=NULL) { 
-    free(bufout);
+#elif __linux
+  // Open file and save data.
+  FILE * pFile;
+  pFile = fopen(hfile.c_str(), "wb");
+
+  if( pFile == NULL ) {
+    if (bufout!=NULL) { 
+      free(bufout);
+    }
+    Reporterror("Unable to create file");
+    return -1;
   }
-  Reporterror("Unable to create file");
-  return -1;
-}
 
-int dataSize = 1;
-l = fwrite(data, dataSize, length, pFile);
+  int dataSize = 1;
+  l = fwrite(data, dataSize, length, pFile);
 
-// Restore old modification date and time.
-struct stat fileAttributes;
-if( stat(hfile.c_str(), &fileAttributes) != 0 ) {
-  Reporterror("Stat failed on restored data file");
-  return -1;
-}
-pf->modified = fileAttributes.st_mtime;
+  // Restore old modification date and time.
+  struct stat fileAttributes;
+  if( stat(hfile.c_str(), &fileAttributes) != 0 ) {
+    Reporterror("Stat failed on restored data file");
+    return -1;
+  }
+  pf->modified = fileAttributes.st_mtime;
 
-// Close file and restore old basic attributes.
-fclose(pFile);
-//!!! is it necessary to save file attributes?
-//SetFileAttributes(outfile,pf->attributes);
+  // Close file and restore old basic attributes.
+  fclose(pFile);
+#endif
+
+  //!!! is it necessary to save file attributes?
+  //SetFileAttributes(outfile,pf->attributes);
 
   if (bufout!=NULL) free(bufout);
-if (l!=length) {
-  Reporterror("I/O error");
-  return -1; };
-// Close file descriptor and report success.
-Closefproc();
-Message("File saved",0);
-return 0;
+  if (l!=length) {
+    Reporterror("I/O error");
+    return -1; };
+  // Close file descriptor and report success.
+  Closefproc();
+  Message("File saved",0);
+  return 0;
 };
 
 
