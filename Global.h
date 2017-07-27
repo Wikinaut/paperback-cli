@@ -153,3 +153,7 @@ void   Options(void);
 
 void Reporterror (std::string);
 void Message (std::string, int);
+#ifdef _WIN32
+int    Filetimetotext(FILETIME *fttime,char *s,int n);
+#endif
+
