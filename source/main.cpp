@@ -158,12 +158,20 @@ int main(int argc, char ** argv) {
       // Verify the input file has valid bitmap header
       //!!!
 
-      // procdata.step drives control flow, value of 0 starts encoding
-      do {
-        Nextdataprocessingstep(&procdata);
-      } while (procdata.step != 0);
+      // Get attributes of the inputted bitmap
+      Getgridposition(&procdata);
+      Getgridintensity(&procdata);
+      Getxangle(&procdata);
+      Getyangle(&procdata);
+      // Get more attributes and allocate memory for decoding
+      Preparefordecoding(&procdata);
+      // Decode block by block until step changes
+      int currStep = procdata.step;
+      while ( procdata.step == currStep ) {
+        Decodenextblock(&procdata);
+      }
+      Finishdecoding(&procdata);
 
-      //!!!
     }
 
     Freeprocdata(&procdata);

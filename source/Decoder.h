@@ -73,7 +73,14 @@ extern int       orientation;          // Orientation of bitmap (-1: unknown)
 //unique 
 extern t_procdata procdata;            // Descriptor of processed data
 
-void   Nextdataprocessingstep(t_procdata *pdata);
+//void   Nextdataprocessingstep(t_procdata *pdata);
+void   Getgridposition(t_procdata *pdata);
+void   Getgridintensity(t_procdata *pdata);
+void   Getxangle(t_procdata *pdata);
+void   Getyangle(t_procdata *pdata);
+void   Preparefordecoding(t_procdata *pdata);
+void   Decodenextblock(t_procdata *pdata);
+void   Finishdecoding(t_procdata *pdata);
 void   Freeprocdata(t_procdata *pdata);
 void   Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey);
 void   Stopbitmapdecoding(t_procdata *pdata);

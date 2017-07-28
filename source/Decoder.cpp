@@ -267,7 +267,7 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
 
 
 // Determines rough grid position.
-static void Getgridposition(t_procdata *pdata) {
+void Getgridposition(t_procdata *pdata) {
   int i,j,nx,ny,stepx,stepy,sizex,sizey;
   int c,cmin,cmax,distrx[256],distry[256],limit;
   uchar *data,*pd;
@@ -332,7 +332,7 @@ static void Getgridposition(t_procdata *pdata) {
 
 
 // Selects search range, determines grid intensity and estimates sharpness.
-static void Getgridintensity(t_procdata *pdata) {
+void Getgridintensity(t_procdata *pdata) {
   int i,j,sizex,sizey,centerx,centery,dx,dy,n;
   int searchx0,searchy0,searchx1,searchy1;
   int distrc[256],distrd[256],cmean,cmin,cmax,limit,sum,contrast;
@@ -401,7 +401,7 @@ static void Getgridintensity(t_procdata *pdata) {
 
 
 // Find angle and step of vertical grid lines.
-static void Getxangle(t_procdata *pdata) {
+void Getxangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex;
   int h[NHYST],nh[NHYST],ystep;
   uchar *data,*pd;
@@ -467,7 +467,7 @@ static void Getxangle(t_procdata *pdata) {
 
 
 // Find angle and step of horizontal grid lines. Very similar to Getxangle().
-static void Getyangle(t_procdata *pdata) {
+void Getyangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex,sizey;
   int h[NHYST],nh[NHYST],xstep;
   uchar *data,*pd;
@@ -532,7 +532,7 @@ static void Getyangle(t_procdata *pdata) {
 
 
 // Prepare data and allocate memory for data decoding.
-static void Preparefordecoding(t_procdata *pdata) {
+void Preparefordecoding(t_procdata *pdata) {
   int sizex,sizey,dx,dy;
   float xstep,ystep,border,sharpfactor,shift,maxxshift,maxyshift,dotsize;
   // Get frequently used variables.
@@ -839,7 +839,7 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
 
 
 
-static void Decodenextblock(t_procdata *pdata) {
+void Decodenextblock(t_procdata *pdata) {
   int answer,ngroup,percent;
   char s[TEXTLEN];
   t_data result;
@@ -913,7 +913,7 @@ finish:
 
 // Passes gathered data to file processor and frees resources allocated by call
 // to Preparefordecoding().
-static void Finishdecoding(t_procdata *pdata) {
+void Finishdecoding(t_procdata *pdata) {
   int i,fileindex;
   // Pass gathered data to file processor.
   if (pdata->superblock.addr==0)

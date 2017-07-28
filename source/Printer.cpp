@@ -528,7 +528,7 @@ void Initializeprinting(t_printdata *print) {
 void Stopprinting(t_printdata *print) {
     // close input flie.
     if (print -> hfile != NULL) {
-        fclose(hfile);
+        fclose(print->hfile);
     }
     // deallocate memory
     if (print -> buf != NULL) {
@@ -547,7 +547,7 @@ void Stopprinting(t_printdata *print) {
     print -> step = 0;
 }
 
-static void Preparefiletoprint(t_printdata *print) {
+void Preparefiletoprint(t_printdata *print) {
     ;
 }
 
