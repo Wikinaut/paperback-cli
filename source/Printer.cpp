@@ -32,6 +32,9 @@
 
 
 // externs/global that were causing linker and all other errors
+int       dpi;                  // Dot raster, dots per inch
+int       dotpercent;           // Dot size, percent of dpi
+int       resx,resy;            // Printer resolution, dpi (may be 0!)
 int       redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
 int       printheader;          // Print header and footer
 int       printborder;          // Border around bitmap
@@ -228,6 +231,298 @@ void Preparefiletoprint(t_printdata *print) {
   print->step++;
 };
 
+void Initializeprinting(t_printdata *print) {
+  int i,dx,dy,px,py,nx,ny,width,height,success,rastercaps;
+  char fil[MAXPATH],nam[MAXFILE],ext[MAXEXT],jobname[TEXTLEN];
+  BITMAPINFO *pbmi;
+  SIZE extent;
+  PRINTDLG printdlg;
+  DOCINFO dinfo;
+  DEVNAMES *pdevnames;
+  // Prepare superdata.
+  print->superdata.addr=SUPERBLOCK;
+  print->superdata.datasize=print->alignedsize;
+  print->superdata.origsize=print->origsize;
+  if (print->compression)
+    print->superdata.mode|=PBM_COMPRESSED;
+  if (print->encryption)
+    print->superdata.mode|=PBM_ENCRYPTED;
+  print->superdata.attributes=(uchar)(print->attributes &
+    (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
+    FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_ARCHIVE|
+    FILE_ATTRIBUTE_NORMAL));
+  print->superdata.modified=print->modified;
+  print->superdata.filecrc=(ushort)print->bufcrc;
+/*   fnsplit(print->infile,NULL,NULL,nam,ext);
+  fnmerge(fil,NULL,NULL,nam,ext); */
+  // Note that name in superdata may be not null-terminated.
+  strncpy(print->superdata.name,fil,32); // don't overwrite the salt and iv at the end of this buffer
+  print->superdata.name[31] = '\0'; // ensure that later string operations don't overflow into binary data
+
+
+/*   // If printing to paper, ask user to select printer and, if necessary, adjust
+  // parameters. I do not enforce high quality or high resolution - the user is
+  // the king (well, a sort of).
+  
+
+  if (print->outbmp[0]=='\0') {
+    // Open standard Print dialog box.
+    memset(&printdlg,0,sizeof(PRINTDLG));
+    printdlg.lStructSize=sizeof(PRINTDLG);
+    printdlg.hwndOwner=hwmain;
+    printdlg.hDevMode=pagesetup.hDevMode;
+    printdlg.hDevNames=pagesetup.hDevNames;
+    printdlg.hDC=NULL;                 // Returns DC
+    printdlg.Flags=PD_ALLPAGES|PD_RETURNDC|PD_NOSELECTION|PD_PRINTSETUP;
+    printdlg.nFromPage=1;              // It's hard to calculate the number of
+    printdlg.nToPage=9999;             // pages in advance.
+    printdlg.nMinPage=1;
+    printdlg.nMaxPage=9999;
+    printdlg.nCopies=1;
+    printdlg.hInstance=hinst;
+    success=PrintDlg(&printdlg);
+    // Save important information.
+//    print->dc=printdlg.hDC;
+    print->frompage=printdlg.nFromPage-1;
+    print->topage=printdlg.nToPage-1;
+    // Clean up to prevent memory leaks.
+    if (pagesetup.hDevMode==NULL)
+      pagesetup.hDevMode=printdlg.hDevMode;
+    else if (printdlg.hDevMode!=pagesetup.hDevMode)
+      GlobalFree(printdlg.hDevMode);
+    if (pagesetup.hDevNames==NULL)
+      pagesetup.hDevNames=printdlg.hDevNames;
+    else if (printdlg.hDevNames!=pagesetup.hDevNames)
+      GlobalFree(printdlg.hDevNames);
+    // Analyse results.
+    if (success==0) {                  // User cancelled printing
+      Message("",0);
+      Stopprinting(print);
+      return; };
+
+     if (print->dc==NULL) {             // Prointer DC is unavailable
+      Reporterror("Unable to access printer");
+      Stopprinting(print);
+      return; };
+
+      // Assure that printer is capable of displaying bitmaps.
+//    rastercaps=GetDeviceCaps(print->dc,RASTERCAPS);
+    if ((rastercaps & RC_DIBTODEV)==0) {
+      Reporterror("The selected printer can't print bitmaps");
+      Stopprinting(print);
+      return; };
+    // Get resolution and size of print area in pixels.
+    print->ppix=GetDeviceCaps(print->dc,LOGPIXELSX);
+    print->ppiy=GetDeviceCaps(print->dc,LOGPIXELSY);
+    width=GetDeviceCaps(print->dc,HORZRES);
+    height=GetDeviceCaps(print->dc,VERTRES); 
+
+
+  //Scrapped because printer headers will be handled by other application.
+    // Create fonts to draw title and comment. If system is unable to create
+    // any font, I get standard one. Of course, standard font will be almost
+    // invisible with printer's resolution.
+    if (print->printheader) {
+      print->hfont6=CreateFont(print->ppiy/6,0,0,0,FW_LIGHT,0,0,0,
+        ANSI_CHARSET,OUT_TT_PRECIS,CLIP_DEFAULT_PRECIS,
+        PROOF_QUALITY,FF_SWISS,NULL);
+      print->hfont10=CreateFont(print->ppiy/10,0,0,0,FW_LIGHT,0,0,0,
+        ANSI_CHARSET,OUT_TT_PRECIS,CLIP_DEFAULT_PRECIS,
+        PROOF_QUALITY,FF_SWISS,NULL);
+      if (print->hfont6==NULL)
+        print->hfont6=(HFONT)GetStockObject(SYSTEM_FONT);
+      if (print->hfont10==NULL)
+        print->hfont10=(HFONT)GetStockObject(SYSTEM_FONT);
+      // Set text color (gray) and alignment (centered).
+      SetTextColor(print->dc,RGB(128,128,128));
+      SetTextAlign(print->dc,TA_TOP|TA_CENTER);
+      // Calculate height of title and info lines on the paper.
+      SelectObject(print->dc,print->hfont6);
+      if (GetTextExtentPoint32(print->dc,"Page",4,&extent)==0)
+        print->extratop=print->ppiy/4;
+      else
+        print->extratop=extent.cy+print->ppiy/16;
+      SelectObject(print->dc,print->hfont10);
+      if (GetTextExtentPoint32(print->dc,"Page",4,&extent)==0)
+        print->extrabottom=print->ppiy/6;
+      else
+        print->extrabottom=extent.cy+print->ppiy/24;
+      ; }
+    else {
+      print->hfont6=NULL;
+      print->hfont10=NULL;
+      print->extratop=print->extrabottom=0; };
+
+
+
+    // Dots on paper are black (palette index 0 in the memory bitmap that will
+    // be created later in this subroutine).
+    print->black=0; }
+  // I treat printing to bitmap as a debugging feature and set some more or
+  // less sound defaults. */
+
+//    print->dc=NULL;
+    print->frompage=0;
+    print->topage=9999;
+    if (resx==0 || resy==0) {
+        print->ppix=300; print->ppiy=300; 
+    } else {
+        print->ppix=resx; print->ppiy=resy; 
+    }
+/*     if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
+        width=pagesetup.ptPaperSize.x*print->ppix/1000;
+        height=pagesetup.ptPaperSize.y*print->ppiy/1000; 
+      } else if (pagesetup.Flags & PSD_INHUNDREDTHSOFMILLIMETERS) {
+        width=pagesetup.ptPaperSize.x*print->ppix/2540;
+        height=pagesetup.ptPaperSize.y*print->ppiy/2540; 
+      } else {                             // Use default A4 size (210x292 mm)*/
+    width=print->ppix*8270/1000;
+    height=print->ppiy*11690/1000; 
+//    };
+//        print->hfont6=NULL;
+//        print->hfont10=NULL;
+    print->extratop=print->extrabottom=0;
+    // To simplify recognition of grid on high-contrast bitmap, dots on the
+    // bitmap are dark gray.
+    print->black=64; 
+
+
+
+    // Calculate page borders in the pixels of printer's resolution.
+/*     if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
+        print->borderleft=pagesetup.rtMargin.left*print->ppix/1000;
+        print->borderright=pagesetup.rtMargin.right*print->ppix/1000;
+        print->bordertop=pagesetup.rtMargin.top*print->ppiy/1000;
+        print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/1000; 
+    }
+    else if (pagesetup.Flags & PSD_INHUNDREDTHSOFMILLIMETERS) {
+        print->borderleft=pagesetup.rtMargin.left*print->ppix/2540;
+        print->borderright=pagesetup.rtMargin.right*print->ppix/2540;
+        print->bordertop=pagesetup.rtMargin.top*print->ppiy/2540;
+        print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; 
+    } else {
+        print->borderleft=print->ppix;
+        print->borderright=print->ppix/2;
+        print->bordertop=print->ppiy/2;
+        print->borderbottom=print->ppiy/2; 
+    } */
+
+
+  // Calculate size of printable area, in the pixels of printer's resolution.
+  width-=
+    print->borderleft+print->borderright;
+  height-=
+    print->bordertop+print->borderbottom+print->extratop+print->extrabottom;
+  // Calculate data point raster (dx,dy) and size of the point (px,py) in the
+  // pixels of printer's resolution. Note that pixels, at least in theory, may
+  // be non-rectangular.
+  dx=std::max(print->ppix/dpi,2);
+  px=std::max((dx*dotpercent)/100,1);
+  dy=std::max(print->ppiy/dpi,2);
+  py=std::max((dy*dotpercent)/100,1);
+  // Calculate width of the border around the data grid.
+  if (print->printborder)
+    print->border=dx*16;
+  else if (print->outbmp[0]!='\0')
+    print->border=25;
+  else
+    print->border=0;
+  // Calculate the number of data blocks that fit onto the single page. Single
+  // page must contain at least redundancy data blocks plus 1 recovery checksum,
+  // and redundancy+1 superblocks with name and size of the data. Data and
+  // recovery blocks should be placed into different columns.
+  nx=(width-px-2*print->border)/(NDOT*dx+3*dx);
+  ny=(height-py-2*print->border)/(NDOT*dy+3*dy);
+  if (nx<print->redundancy+1 || ny<3 || nx*ny<2*print->redundancy+2) {
+    Reporterror("Printable area is too small, reduce borders or block size");
+    Stopprinting(print);
+    return; };
+  // Calculate final size of the bitmap where I will draw the image.
+  width=(nx*(NDOT+3)*dx+px+2*print->border+3) & 0xFFFFFFFC;
+  height=ny*(NDOT+3)*dy+py+2*print->border;
+  // Fill in bitmap header. To simplify processing, I use 256-color bitmap
+  // (1 byte per pixel).
+  pbmi=(BITMAPINFO *)print->bmi;
+  memset(pbmi,0,sizeof(BITMAPINFOHEADER));
+  pbmi->bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+  pbmi->bmiHeader.biWidth=width;
+  pbmi->bmiHeader.biHeight=height;
+  pbmi->bmiHeader.biPlanes=1;
+  pbmi->bmiHeader.biBitCount=8;
+  pbmi->bmiHeader.biCompression=BI_RGB;
+  pbmi->bmiHeader.biSizeImage=0;
+  pbmi->bmiHeader.biXPelsPerMeter=0;
+  pbmi->bmiHeader.biYPelsPerMeter=0;
+  pbmi->bmiHeader.biClrUsed=256;
+  pbmi->bmiHeader.biClrImportant=256;
+  for (i=0; i<256; i++) {
+    pbmi->bmiColors[i].rgbBlue=(uchar)i;
+    pbmi->bmiColors[i].rgbGreen=(uchar)i;
+    pbmi->bmiColors[i].rgbRed=(uchar)i;
+    pbmi->bmiColors[i].rgbReserved=0; };
+  // Create bitmap. Direct drawing is faster than tens of thousands of API
+  // calls.
+  if (print->outbmp[0]=='\0') {        // Print to paper
+//    print->hbmp=CreateDIBSection(print->dc,pbmi,DIB_RGB_COLORS,
+//      (void **)&(print->dibbits),NULL,0);
+        ;
+    if (print->hbmp==NULL || print->dibbits==NULL) {
+      Reporterror("Low memory, can't print");
+      Stopprinting(print);
+      return;
+    }; }
+  else {                               // Save to bitmap
+    print->drawbits=(uchar *)GlobalAlloc(GMEM_FIXED,width*height);
+    if (print->drawbits==NULL) {
+      Reporterror("Low memory, can't create bitmap");
+      return;
+    };
+  };
+  // Calculate the total size of useful data, bytes, that fits onto the page.
+  // For each redundancy blocks, I create one recovery block. For each chain, I
+  // create one superblock that contains file name and size, plus at least one
+  // superblock at the end of the page.
+  print->pagesize=((nx*ny-print->redundancy-2)/(print->redundancy+1))*
+    print->redundancy*NDATA;
+  print->superdata.pagesize=print->pagesize;
+  // Save calculated parameters.
+  print->width=width;
+  print->height=height;
+  print->dx=dx;
+  print->dy=dy;
+  print->px=px;
+  print->py=py;
+  print->nx=nx;
+  print->ny=ny;
+
+  // Start printing. -> not actually printing - don't need
+/*   if (print->outbmp[0]=='\0') {
+    if (pagesetup.hDevNames!=NULL)
+      pdevnames=(DEVNAMES *)GlobalLock(pagesetup.hDevNames);
+    else
+      pdevnames=NULL;
+    memset(&dinfo,0,sizeof(DOCINFO));
+    dinfo.cbSize=sizeof(DOCINFO);
+    sprintf(jobname,"PaperBack - %.64s",print->superdata.name);
+    dinfo.lpszDocName=jobname;
+    if (pdevnames==NULL)
+      dinfo.lpszOutput=NULL;
+    else
+      dinfo.lpszOutput=(char *)pdevnames+pdevnames->wOutputOffset;
+//    success=StartDoc(print->dc,&dinfo);
+    if (pdevnames!=NULL)
+      GlobalUnlock(pagesetup.hDevNames);
+    if (success<=0) {
+      Reporterror("Unable to print");
+      Stopprinting(print);
+      return; };
+    print->startdoc=1;
+  };*/
+
+  // Step finished.
+  print->step++;
+} 
+
 #else
 
 void Stopprinting(t_printdata *print) {
@@ -255,6 +550,7 @@ void Stopprinting(t_printdata *print) {
 static void Preparefiletoprint(t_printdata *print) {
     ;
 }
+
 #endif
 
 // Prints one complete page or saves one bitmap.

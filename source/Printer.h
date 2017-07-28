@@ -37,6 +37,7 @@ typedef struct t_printdata {           // Print control structure
   #ifdef _WIN32
   HANDLE         hfile;                // Handle of input file
   FILETIME       modified;             // Time of last file modification
+  HBITMAP        hbmp;                 // Handle of memory bitmap
   #elif __linux
   FILE           *hfile;
   time_t         modified;             // Time of last file modification
@@ -78,7 +79,6 @@ typedef struct t_printdata {           // Print control structure
   int            px,py;                // Dot size, pixels
   int            nx,ny;                // Grid dimensions, blocks
   int            border;               // Border around the data grid, pixels
-  //HBITMAP        hbmp;                 // Handle of memory bitmap
   uchar          *dibbits;             // Pointer to DIB bits
   uchar          *drawbits;            // Pointer to file bitmap bits
   uchar          bmi[sizeof(BITMAPINFO)+256*sizeof(RGBQUAD)]; // Bitmap info
