@@ -15,14 +15,18 @@
  *
  * =====================================================================================
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <string>
 #include "cxxopts.hpp"
 #include "Decoder.h"
 #include "Printer.h"
 
 using namespace std;
 
+#define VERSIONHI 1
+#define VERSIONLO 2
 
 
 
@@ -55,18 +59,19 @@ bool validate(cxxopts::Options &o) {
     return is_ok;
 }
 
-cxxopts::Options arguments(int ac, char **av) {
+cxxopts::Options arguments(int ac, char **av, bool &isEncode, bool &isDecode) {
     cxxopts::Options o(av[0],
                        "Encodes or decodes high-density printable file backups.");
     vector<string> parg = {"input", "output"};
     o.add_options()
         ("h,help", "displays help")
+        ("v,version", "Display version and information relevant to that version")
         ("encode", 
             "action to encode data to bitmap", 
-            cxxopts::value<bool>())
+            cxxopts::value<bool>(isEncode))
         ("decode", 
             "action to decode data from bitmap", 
-            cxxopts::value<bool>())
+            cxxopts::value<bool>(isDecode))
         ("i,input", 
             "file to encode to or decode from",
             cxxopts::value<string>(),
@@ -89,14 +94,91 @@ cxxopts::Options arguments(int ac, char **av) {
     o.parse(ac, av);
     if (o.count("help")) {
         cout << o.help() << endl;
-        exit(EXIT_SUCCESS);
-    } else if (!validate(o)) {
-        exit(EXIT_FAILURE);
+    }else if (o.count("version")) {
+      char s[1024];
+      sprintf(s,"\nPaperBack v%i.%02i\n"
+          "Copyright © 2007 Oleh Yuschuk\n\n"
+          "----- THIS SOFTWARE IS FREE -----\n"
+          "Released under GNU Public License (GPL 3+)\n"
+          "Full sources available\n\n"
+          "Reed-Solomon ECC:\n"
+          "Copyright © 2002 Phil Karn (GPL)\n\n",
+          VERSIONHI,VERSIONLO);
+      cout << s;
+    }else if (!validate(o)) {
+      exit(EXIT_FAILURE);
     }
     return o;
 }
 
 int main(int argc, char ** argv) {
-    cxxopts::Options p = arguments(argc, argv);
-    return 0;
+  try {
+    bool isEncode = false;
+    bool isDecode = false;
+    cxxopts::Options options = arguments(argc, argv, isEncode, isDecode);
+
+
+    // around line 507 in original
+
+
+    // externs (also have matching values in printdata and/or procdata)
+    std::string infileString = options["input"].as<string>();
+    const char * infile = infileString.c_str();
+    const char * outfile = options["output"].as<string>().c_str();
+
+    if( isEncode ) {
+      // Accepts arbitrary data, no need to check if data is good
+
+      // ?Set struct printdata values
+      printdata.step = 0;
+      printdata.infile = infile; //memcpy?
+      printdata.outbmp = outfile; //memcpy?
+#ifdef _WIN32
+      //hfile = GET HANDLE
+      //FILETIME = GET FILETIME FROM HANDLE
+#elif __linux__
+      hfile = infileString;
+      //modified = GET TIME FROM STAT
+#endif 
+      //!!! what other data needed?
+
+      // ?begin the process to write the bitmap
+      // if second arg is not NULL, writes a bmp to outfile
+      Printfile( outfile, outfile );
+      
+      // printdata.step drives control flow to write bitmap
+      do {
+        Nextdataprintingstep(&printdata);
+      } while (printdata.step != 0);
+
+
+      //!!!
+    }
+    else if( isDecode ) {
+      // Input file must be a valid bitmap 
+      // Verify the input file has valid bitmap header
+      //!!!
+
+      // procdata.step drives control flow, value of 0 starts encoding
+      do {
+        Nextdataprocessingstep(&procdata);
+      } while (procdata.step != 0);
+
+      //!!!
+    }
+
+    Freeprocdata(&procdata);
+    Stopprinting(&printdata);
+
+  } 
+  catch (const cxxopts::OptionException& e) {
+    cerr << "error parsing options: " << e.what() << endl;
+    exit(1);
+  }
+  catch (const std::exception& e) {
+    cerr << "An unexpected error occurred: " << e.what() << endl;
+    exit(1);
+  }
+
+  return 0;
 }
