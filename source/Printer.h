@@ -91,7 +91,7 @@ extern int       resx,resy;            // Printer resolution, dpi (may be 0!)
 extern t_printdata printdata;          // Print control structure
 
 void   Printfile(const std::string &path, const std::string &bmp);
-//void   Preparefiletoprint(t_printdata *print);
+void   Preparefiletoprint(t_printdata *print);
 //void   Initializeprinting(t_printdata *print);
 void   Stopprinting(t_printdata *print);
 void   Printnextpage(t_printdata *print);

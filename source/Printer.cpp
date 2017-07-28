@@ -31,7 +31,10 @@
 // output bitmap files thus a lot of printer functions are unnecessary
 
 
-
+// externs/global that were causing linker and all other errors
+int       redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+int       printheader;          // Print header and footer
+int       printborder;          // Border around bitmap
 t_printdata printdata;          // extern
 
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
@@ -166,6 +169,65 @@ void Stopprinting(t_printdata *print) {
   // Stop printing.
   print->step=0;
 };
+
+// Opens input file and allocates memory buffers.
+void Preparefiletoprint(t_printdata *print) {
+  ulong l;
+//#ifdef _WIN32
+  FILETIME created, accessed, modified;
+//#elif __linux
+//  time_t created, accessed, modified;
+//#endif
+  // Get file attributes.
+  print->attributes=GetFileAttributes(print->infile.c_str());
+  if (print->attributes==0xFFFFFFFF)
+    print->attributes=FILE_ATTRIBUTE_NORMAL;
+  // Open input file.
+  print->hfile = CreateFile(print->infile.c_str(),GENERIC_READ,FILE_SHARE_READ,
+    NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+  if (print->hfile==INVALID_HANDLE_VALUE) {
+    Reporterror("Unable to open file");
+    Stopprinting(print);
+    return; };
+  // Get time of last file modification.
+  GetFileTime(print->hfile,&created,&accessed,&modified);
+  if (modified.dwHighDateTime==0)
+    print->modified=created;
+  else
+    print->modified=modified;
+  // Get original (uncompressed) file size.
+  print->origsize=GetFileSize(print->hfile, (LPDWORD)&l);
+  if (print->origsize==0 || print->origsize>MAXSIZE || l!=0) {
+    Reporterror("Invalid file size");
+    Stopprinting(print);
+    return; };
+  print->readsize=0;
+  // Allocate buffer for compressed file. (If compression is off, buffer will
+  // contain uncompressed data). As AES encryption works on 16-byte records,
+  // buffer is aligned to next 16-bit border.
+  print->bufsize=(print->origsize+15) & 0xFFFFFFF0;
+  print->buf=(uchar *)GlobalAlloc(GMEM_FIXED,print->bufsize);
+  if (print->buf==NULL) {
+    Reporterror("Low memory");
+    Stopprinting(print);
+    return; };
+  // Allocate read buffer. Because compression may take significant time, I
+  // pack data in pieces of PACKLEN bytes.
+  print->readbuf=(uchar *)GlobalAlloc(GMEM_FIXED,PACKLEN);
+  if (print->readbuf==NULL) {
+    Reporterror("Low memory");
+    Stopprinting(print);
+    return; };
+  // Set options.
+//  print->compression=compression;
+//  print->encryption=encryption;
+  print->printheader=printheader;
+  print->printborder=printborder;
+  print->redundancy=redundancy;
+  // Step finished.
+  print->step++;
+};
+
 #else
 
 void Stopprinting(t_printdata *print) {
@@ -190,6 +252,9 @@ void Stopprinting(t_printdata *print) {
     print -> step = 0;
 }
 
+static void Preparefiletoprint(t_printdata *print) {
+    ;
+}
 #endif
 
 // Prints one complete page or saves one bitmap.
