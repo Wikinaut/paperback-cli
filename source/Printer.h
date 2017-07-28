@@ -23,6 +23,7 @@
 #include "Global.h"
 #ifdef __linux__
 #include "Bitmap.h"
+#include <sys/stat.h>
 #endif
 
 #define PACKLEN        65536           // Length of data read buffer 64 K
@@ -38,11 +39,12 @@ typedef struct t_printdata {           // Print control structure
   HANDLE         hfile;                // Handle of input file
   FILETIME       modified;             // Time of last file modification
   HBITMAP        hbmp;                 // Handle of memory bitmap
+  ulong          attributes;           // File attributes
   #elif __linux
   FILE           *hfile;
-  time_t         modified;             // Time of last file modification
+  struct stat    attributes;
+  time_t         modified;
   #endif
-  ulong          attributes;           // File attributes
   ulong          origsize;             // Original file size, bytes
   ulong          readsize;             // Amount of data read from file so far
   ulong          datasize;             // Size of (compressed) data
@@ -92,7 +94,7 @@ extern t_printdata printdata;          // Print control structure
 
 void   Printfile(const std::string &path, const std::string &bmp);
 void   Preparefiletoprint(t_printdata *print);
-//void   Initializeprinting(t_printdata *print);
+void   Initializeprinting(t_printdata *print);
 void   Stopprinting(t_printdata *print);
 void   Printnextpage(t_printdata *print);
 static void   Drawblock(int index,t_data *block,uchar *bits,int width,int height,

@@ -167,7 +167,7 @@ inline void Reporterror(const std::string &input) {
 
 
 inline void Message(const std::string &input, int progress) {
-  std::cout << input << " @ " << progress << std::endl;
+  std::cout << input << " @ " << progress <<  "%" << std::endl;
 }
 
 

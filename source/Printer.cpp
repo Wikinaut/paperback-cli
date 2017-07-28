@@ -44,7 +44,7 @@ t_printdata printdata;          // extern
 void  Printfile(const std::string &path, const std::string &bmp)
 {
   // Stop printing of previous file, if any.
-  //Stopprinting(&printdata);
+  Stopprinting(&printdata);
   // Prepare descriptor.
   memset(&printdata,0,sizeof(printdata));
   printdata.infile = path;
@@ -138,49 +138,11 @@ static void Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
 
 
 
-#ifdef _WIN32
-// Stops printing and cleans print descriptor.
-void Stopprinting(t_printdata *print) {
-  // Finish compression.
-//  if (print->compression!=0) {
-//    BZ2_bzCompressEnd(&print->bzstream);
-//    print->compression=0; };
-  // Close input file.
-  if (print->hfile!=NULL && print->hfile!=INVALID_HANDLE_VALUE) {
-    CloseHandle(print->hfile); print->hfile=NULL; };
-  // Deallocate memory.
-  if (print->buf!=NULL) {
-    GlobalFree((HGLOBAL)print->buf); print->buf=NULL; };
-  if (print->readbuf!=NULL) {
-    GlobalFree((HGLOBAL)print->readbuf); print->readbuf=NULL; };
-  if (print->drawbits!=NULL) {
-    GlobalFree((HGLOBAL)print->drawbits); print->drawbits=NULL; };
-  // Free other resources.
-  if (print->startdoc!=0) {
-//    EndDoc(print->dc); 
-    print->startdoc=0; };
-//  if (print->dc!=NULL) {
-//    DeleteDC(print->dc); print->dc=NULL; };
-//  if (print->hfont6!=NULL && print->hfont6!=GetStockObject(SYSTEM_FONT))
-//    DeleteObject(print->hfont6);
-//  print->hfont6=NULL;
-//  if (print->hfont10!=NULL && print->hfont10!=GetStockObject(SYSTEM_FONT))
-//    DeleteObject(print->hfont10);
-//  print->hfont10=NULL;
-//  if (print->hbmp!=NULL) {
-//    DeleteObject(print->hbmp); print->hbmp=NULL; print->dibbits=NULL; };
-  // Stop printing.
-  print->step=0;
-};
-
 // Opens input file and allocates memory buffers.
 void Preparefiletoprint(t_printdata *print) {
   ulong l;
-//#ifdef _WIN32
+#ifdef _WIN32
   FILETIME created, accessed, modified;
-//#elif __linux
-//  time_t created, accessed, modified;
-//#endif
   // Get file attributes.
   print->attributes=GetFileAttributes(print->infile.c_str());
   if (print->attributes==0xFFFFFFFF)
@@ -191,7 +153,8 @@ void Preparefiletoprint(t_printdata *print) {
   if (print->hfile==INVALID_HANDLE_VALUE) {
     Reporterror("Unable to open file");
     Stopprinting(print);
-    return; };
+    return; 
+  };
   // Get time of last file modification.
   GetFileTime(print->hfile,&created,&accessed,&modified);
   if (modified.dwHighDateTime==0)
@@ -203,20 +166,49 @@ void Preparefiletoprint(t_printdata *print) {
   if (print->origsize==0 || print->origsize>MAXSIZE || l!=0) {
     Reporterror("Invalid file size");
     Stopprinting(print);
-    return; };
+    return; 
+  };
+#elif __linux
+  //!!!TEST struct mem allocation
+  std::cout << "print->infile: " << print->infile << std::endl;
+  std::cout << "superblock addr: " << &print->superdata << std::endl;
+  // Get file attributes
+  if ( stat(print->infile.c_str(), &(print->attributes)) < 0 ) {
+    Reporterror("Unable to get input file attributes");
+    Stopprinting(print);
+    return;
+  }
+  // Open input file.
+  print->hfile = fopen( print->infile.c_str(), "rb" );
+  if (print->hfile == NULL) {
+    Reporterror("Invalid file size");
+    Stopprinting(print);
+    return; 
+  }
+  // Get time of last file modification.
+  print->modified = print->attributes.st_mtime;
+  // Get original (uncompressed) file size.
+  print->origsize = print->attributes.st_size;
+  if (print->origsize==0 || print->origsize>MAXSIZE) {
+    Reporterror("Invalid file size");
+    Stopprinting(print);
+    return;
+  }
+#endif
   print->readsize=0;
+
   // Allocate buffer for compressed file. (If compression is off, buffer will
   // contain uncompressed data). As AES encryption works on 16-byte records,
   // buffer is aligned to next 16-bit border.
   print->bufsize=(print->origsize+15) & 0xFFFFFFF0;
-  print->buf=(uchar *)GlobalAlloc(GMEM_FIXED,print->bufsize);
+  print->buf=(uchar *)malloc(print->bufsize);
   if (print->buf==NULL) {
     Reporterror("Low memory");
     Stopprinting(print);
     return; };
   // Allocate read buffer. Because compression may take significant time, I
   // pack data in pieces of PACKLEN bytes.
-  print->readbuf=(uchar *)GlobalAlloc(GMEM_FIXED,PACKLEN);
+  print->readbuf=(uchar *)malloc(PACKLEN);
   if (print->readbuf==NULL) {
     Reporterror("Low memory");
     Stopprinting(print);
@@ -235,23 +227,28 @@ void Initializeprinting(t_printdata *print) {
   int i,dx,dy,px,py,nx,ny,width,height,success,rastercaps;
   char fil[MAXPATH],nam[MAXFILE],ext[MAXEXT],jobname[TEXTLEN];
   BITMAPINFO *pbmi;
-  SIZE extent;
-  PRINTDLG printdlg;
-  DOCINFO dinfo;
-  DEVNAMES *pdevnames;
+  //SIZE extent;
+  //PRINTDLG printdlg;
+  //DOCINFO dinfo;
+  //DEVNAMES *pdevnames;
   // Prepare superdata.
   print->superdata.addr=SUPERBLOCK;
   print->superdata.datasize=print->alignedsize;
   print->superdata.origsize=print->origsize;
-  if (print->compression)
+  /*if (print->compression)
     print->superdata.mode|=PBM_COMPRESSED;
   if (print->encryption)
-    print->superdata.mode|=PBM_ENCRYPTED;
+    print->superdata.mode|=PBM_ENCRYPTED; */
+#ifdef __WIN32
   print->superdata.attributes=(uchar)(print->attributes &
     (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
     FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_ARCHIVE|
     FILE_ATTRIBUTE_NORMAL));
   print->superdata.modified=print->modified;
+#elif __linux__
+  //!!! get attributes needed to recreate file from stat
+  //set print->modified
+#endif
   print->superdata.filecrc=(ushort)print->bufcrc;
 /*   fnsplit(print->infile,NULL,NULL,nam,ext);
   fnmerge(fil,NULL,NULL,nam,ext); */
@@ -318,7 +315,6 @@ void Initializeprinting(t_printdata *print) {
     height=GetDeviceCaps(print->dc,VERTRES); 
 
 
-  //Scrapped because printer headers will be handled by other application.
     // Create fonts to draw title and comment. If system is unable to create
     // any font, I get standard one. Of course, standard font will be almost
     // invisible with printer's resolution.
@@ -462,17 +458,13 @@ void Initializeprinting(t_printdata *print) {
     pbmi->bmiColors[i].rgbReserved=0; };
   // Create bitmap. Direct drawing is faster than tens of thousands of API
   // calls.
-  if (print->outbmp[0]=='\0') {        // Print to paper
-//    print->hbmp=CreateDIBSection(print->dc,pbmi,DIB_RGB_COLORS,
-//      (void **)&(print->dibbits),NULL,0);
-        ;
-    if (print->hbmp==NULL || print->dibbits==NULL) {
-      Reporterror("Low memory, can't print");
-      Stopprinting(print);
-      return;
-    }; }
+  if (print->outbmp[0]=='\0') {
+    Reporterror("Outfile unspecified, can not create BMP");
+    Stopprinting(print);
+    return;
+  }
   else {                               // Save to bitmap
-    print->drawbits=(uchar *)GlobalAlloc(GMEM_FIXED,width*height);
+    print->drawbits=(uchar *)malloc(width*height);
     if (print->drawbits==NULL) {
       Reporterror("Low memory, can't create bitmap");
       return;
@@ -523,8 +515,45 @@ void Initializeprinting(t_printdata *print) {
   print->step++;
 } 
 
-#else
 
+#ifdef _WIN32
+// Stops printing and cleans print descriptor.
+void Stopprinting(t_printdata *print) {
+  // Finish compression.
+//  if (print->compression!=0) {
+//    BZ2_bzCompressEnd(&print->bzstream);
+//    print->compression=0; };
+  // Close input file.
+  if (print->hfile!=NULL && print->hfile!=INVALID_HANDLE_VALUE) {
+    CloseHandle(print->hfile); print->hfile=NULL; };
+  // Deallocate memory.
+  if (print->buf!=NULL) {
+    free(print->buf); print->buf=NULL; };
+  if (print->readbuf!=NULL) {
+    free(print->readbuf); print->readbuf=NULL; };
+  if (print->drawbits!=NULL) {
+    free(print->drawbits); print->drawbits=NULL; };
+  // Free other resources.
+  if (print->startdoc!=0) {
+//    EndDoc(print->dc); 
+    print->startdoc=0; };
+//  if (print->dc!=NULL) {
+//    DeleteDC(print->dc); print->dc=NULL; };
+//  if (print->hfont6!=NULL && print->hfont6!=GetStockObject(SYSTEM_FONT))
+//    DeleteObject(print->hfont6);
+//  print->hfont6=NULL;
+//  if (print->hfont10!=NULL && print->hfont10!=GetStockObject(SYSTEM_FONT))
+//    DeleteObject(print->hfont10);
+//  print->hfont10=NULL;
+//  if (print->hbmp!=NULL) {
+//    DeleteObject(print->hbmp); print->hbmp=NULL; print->dibbits=NULL; };
+  // Stop printing.
+  print->step=0;
+};
+
+
+
+#elif __linux__
 void Stopprinting(t_printdata *print) {
     // close input flie.
     if (print -> hfile != NULL) {
@@ -546,12 +575,9 @@ void Stopprinting(t_printdata *print) {
     print -> startdoc = 0;
     print -> step = 0;
 }
-
-void Preparefiletoprint(t_printdata *print) {
-    ;
-}
-
 #endif
+
+
 
 // Prints one complete page or saves one bitmap.
 void Printnextpage(t_printdata *print) {
@@ -594,13 +620,12 @@ void Printnextpage(t_printdata *print) {
     bits=print->drawbits;
   // Start new page.
   /*if (print->outbmp[0]=='\0') {
-    success=StartPage(print->dc);
-  //!!! instead of print, create bmp file
-  if (success<=0) {
-  Reporterror("Unable to print");
-  Stopprinting(print);
-  return;
-  };
+    //success=StartPage(print->dc);
+    if (success<=0) {
+      Reporterror("Unable to print");
+      Stopprinting(print);
+      return;
+    };
   }; */
   // Check if we can reduce the vertical size of the table on the last page.
   // To assure reliable orientation, I request at least 3 rows.
@@ -759,7 +784,7 @@ void Printnextpage(t_printdata *print) {
       FILE *f = fopen( print->outbmp.c_str(), "wb");
       if (f == NULL) {
         Reporterror("can not open file for writing");
-        //Stopprinting(print);
+        Stopprinting(print);
         return;
       }
 
@@ -791,7 +816,7 @@ void Printnextpage(t_printdata *print) {
       fclose(f);
       if (success==0) {
         Reporterror("Unable to save bitmap");
-        //Stopprinting(print);
+        Stopprinting(print);
         return;
       };
     };

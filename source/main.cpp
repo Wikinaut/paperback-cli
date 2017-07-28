@@ -125,39 +125,26 @@ int main(int argc, char ** argv) {
     std::string outfile = options["output"].as<string>();
 
     if( isEncode ) {
-      // Accepts arbitrary data, no need to check if data is good
-
       // begin the process to write the bitmap,
       // allocate memory for printdata
       // sets printdata.infile and printdata.outbmp
       // if second arg is not NULL, writes a bmp to outfile
-      Printfile( outfile, outfile );
+      Printfile( infile, outfile );
       
-      // Get several options
+      // Get more attributes
       // Opens buffer for arbitrary data
-//      Preparefiletoprint( &printdata );
+      Preparefiletoprint( &printdata );
 
-      //!!!
-//      Initializeprinting( &printdata );
-      //!!! 
-      //in loop?
+      //Get more attributes
+      // Construct superblock
+      Initializeprinting( &printdata );
+      //Create BMPs until all data has been written to BMP
+      int currStep = printdata.step;
+      while ( printdata.step == currStep ) {
       Printnextpage( &printdata );
-
-       // Set struct printdata values (by function steps???
-#ifdef _WIN32
-      //printdata.hfile = GET HANDLE
-      //FILETIME = GET FILETIME FROM HANDLE
-#elif __linux__
-      //modified = GET TIME FROM STAT
-#endif 
-      //!!! what other data needed?
-     
+      }
     }
     else {
-      // Input file must be a valid bitmap 
-      // Verify the input file has valid bitmap header
-      //!!!
-
       // Get attributes of the inputted bitmap
       Getgridposition(&procdata);
       Getgridintensity(&procdata);
