@@ -361,13 +361,13 @@ void Initializeprinting(t_printdata *print) {
   // less sound defaults.
 
 //    print->dc=NULL;
-//    print->frompage=0;
-//    print->topage=9999;
-//    if (resx==0 || resy==0) {
-//      print->ppix=300; print->ppiy=300; 
-//    } else {
-//      print->ppix=resx; print->ppiy=resy; 
-//    }
+    print->frompage=0;
+    print->topage=9999;
+    if (resx==0 || resy==0) {
+      print->ppix=300; print->ppiy=300; 
+    } else {
+      print->ppix=resx; print->ppiy=resy; 
+    }
 //    if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
 //      width=pagesetup.ptPaperSize.x*print->ppix/1000;
 //      height=pagesetup.ptPaperSize.y*print->ppiy/1000; 
@@ -400,10 +400,10 @@ void Initializeprinting(t_printdata *print) {
 //        print->bordertop=pagesetup.rtMargin.top*print->ppiy/2540;
 //        print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; 
 //    } else {
-//        print->borderleft=print->ppix;
-//        print->borderright=print->ppix/2;
-//        print->bordertop=print->ppiy/2;
-//        print->borderbottom=print->ppiy/2; 
+    print->borderleft=print->ppix; 
+    print->borderright=print->ppix/2;
+    print->bordertop=print->ppiy/2;
+    print->borderbottom=print->ppiy/2; 
 //    } 
 
 
@@ -432,6 +432,22 @@ void Initializeprinting(t_printdata *print) {
   // recovery blocks should be placed into different columns.
   nx=(width-px-2*print->border)/(NDOT*dx+3*dx);
   ny=(height-py-2*print->border)/(NDOT*dy+3*dy);
+  std::cout << "nx: " << nx << std::endl;
+  std::cout << "ny: " << ny << std::endl;
+  std::cout << "width: " << width << std::endl;
+  std::cout << "height: " << height << std::endl;
+  std::cout << "print->ppix: " << print->ppix << std::endl;
+  std::cout << "print->ppiy: " << print->ppiy << std::endl;
+  std::cout << "print->bordertop: " << print->bordertop << std::endl;
+  std::cout << "print->borderbottom: " << print->borderbottom << std::endl;
+  std::cout << "print->borderleft: " << print->borderleft << std::endl;
+  std::cout << "print->borderright: " << print->borderright << std::endl;
+  std::cout << "print->border: " << print->border << std::endl;
+  std::cout << "px: " << px << std::endl;
+  std::cout << "py: " << py << std::endl;
+  std::cout << "NDOT: " << NDOT << std::endl;
+  std::cout << "dx: " << dx <<std::endl;
+  std::cout << "dy: " << dy << std::endl;
   if (nx<print->redundancy+1 || ny<3 || nx*ny<2*print->redundancy+2) {
     Reporterror("Printable area is too small, reduce borders or block size");
     Stopprinting(print);

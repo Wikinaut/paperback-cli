@@ -44,9 +44,12 @@ inline bool isSwitchValid(int value)
 // dpi 40 to 300
 bool validate(cxxopts::Options &o) 
 {
-  cout << "no-header: " << o["no-header"].as<int>() << endl;
-  cout << "border: " << o["border"].as<int>() << endl;
     bool is_ok = true;
+    if ((o["mode"].as<string>().compare("encode") != 0) && 
+         o["mode"].as<string>().compare("decode") != 0) {
+        cerr << "error: invalid mode given" << endl;
+        is_ok = false;
+    }
     if (o["i"].as<string>().empty()) {
         cerr << "error: no input file given" << endl;
         is_ok = false;
@@ -65,11 +68,6 @@ bool validate(cxxopts::Options &o)
     }
     if (o["r"].as<int>() < 2 || o["r"].as<int>() > 10) {
         cerr << "error: invalid value for redundancy" << endl;
-        is_ok = false;
-    }
-    if ((o["mode"].as<string>().compare("encode") != 0) && 
-         o["mode"].as<string>().compare("decode") != 0) {
-        cerr << "error: invalid mode given" << endl;
         is_ok = false;
     }
     if ( isSwitchValid(o["no-header"].as<int>()) ) {
@@ -122,6 +120,7 @@ cxxopts::Options arguments(int ac, char **av) {
     o.parse(ac, av);
     if (o.count("help")) {
         cout << o.help() << endl;
+        exit(EXIT_SUCCESS);
     }else if (o.count("version")) {
       cout << "\nPaperBack v" << VERSIONHI << "." << VERSIONLO << endl
            << "Copyright © 2007 Oleh Yuschuk" << endl << endl
