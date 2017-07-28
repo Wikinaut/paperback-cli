@@ -32,13 +32,12 @@
 
 typedef struct t_printdata {           // Print control structure
   int            step;                 // Next data printing step (0 - idle)
-  char           infile[MAXPATH];      // Name of input file
-  char           outbmp[MAXPATH];      // Name of output bitmap (empty: paper)
+  std::string    infile;               // Name of input file
+  std::string    outbmp;               // Name of output bitmap (empty: paper)
   #ifdef _WIN32
   HANDLE         hfile;                // Handle of input file
   FILETIME       modified;             // Time of last file modification
   #elif __linux
-  std::string    hfile;                // Handle of input file
   time_t         modified;             // Time of last file modification
   #endif
   ulong          attributes;           // File attributes
@@ -90,10 +89,12 @@ typedef struct t_printdata {           // Print control structure
 extern int       resx,resy;            // Printer resolution, dpi (may be 0!)
 extern t_printdata printdata;          // Print control structure
 
-void   Initializeprintsettings(void);
-void   Closeprintsettings(void);
-void   Setuppage(void);
-void   Stopprinting(t_printdata *print);
-void   Nextdataprintingstep(t_printdata *print);
-void   Printfile(char *path,char *bmp);
+void   Printfile(const std::string &path, const std::string &bmp);
+void   Preparefiletoprint(t_printdata *print);
+void   Initializeprinting(t_printdata *print);
+void   Printnextpage(t_printdata *print);
+void   Drawblock(int index,t_data *block,uchar *bits,int width,int height,
+                  int border,int nx,int ny,int dx,int dy,int px,int py,int black);
+void   Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
+                  int border,int nx,int ny,int dx,int dy,int px,int py,int black);
 #endif

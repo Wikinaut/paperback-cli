@@ -97,16 +97,13 @@ cxxopts::Options arguments(int ac, char **av) {
     if (o.count("help")) {
         cout << o.help() << endl;
     }else if (o.count("version")) {
-      char s[1024];
-      sprintf(s,"\nPaperBack v%i.%02i\n"
-          "Copyright © 2007 Oleh Yuschuk\n\n"
-          "----- THIS SOFTWARE IS FREE -----\n"
-          "Released under GNU Public License (GPL 3+)\n"
-          "Full sources available\n\n"
-          "Reed-Solomon ECC:\n"
-          "Copyright © 2002 Phil Karn (GPL)\n\n",
-          VERSIONHI,VERSIONLO);
-      cout << s;
+      cout << "\nPaperBack v" << VERSIONHI << "." << VERSIONLO << endl
+           << "Copyright © 2007 Oleh Yuschuk" << endl << endl
+           << "----- THIS SOFTWARE IS FREE -----" << endl
+           << "Released under GNU Public License (GPL 3+)" << endl
+           << "Full sources available" << endl << endl
+           << "Reed-Solomon ECC:" << endl
+           << "Copyright © 2002 Phil Karn (GPL)" << endl << endl;
     }else if (!validate(o)) {
       exit(EXIT_FAILURE);
     }
@@ -124,37 +121,37 @@ int main(int argc, char ** argv) {
 
 
     // externs (also have matching values in printdata and/or procdata)
-    std::string infileString = options["input"].as<string>();
-    const char * infile = infileString.c_str();
-    const char * outfile = options["output"].as<string>().c_str();
+    std::string infile = options["input"].as<string>();
+    std::string outfile = options["output"].as<string>();
 
     if( isEncode ) {
       // Accepts arbitrary data, no need to check if data is good
 
-      // ?Set struct printdata values
-      printdata.step = 0;
-      printdata.infile = infile; //memcpy?
-      printdata.outbmp = outfile; //memcpy?
-#ifdef _WIN32
-      //hfile = GET HANDLE
-      //FILETIME = GET FILETIME FROM HANDLE
-#elif __linux__
-      hfile = infileString;
-      //modified = GET TIME FROM STAT
-#endif 
-      //!!! what other data needed?
-
-      // ?begin the process to write the bitmap
+      // begin the process to write the bitmap,
+      // allocate memory for printdata
+      // sets printdata.infile and printdata.outbmp
       // if second arg is not NULL, writes a bmp to outfile
       Printfile( outfile, outfile );
       
-      // printdata.step drives control flow to write bitmap
-      do {
-        Nextdataprintingstep(&printdata);
-      } while (printdata.step != 0);
-
+      // Get several options
+      // Opens buffer for arbitrary data
+      Preparefiletoprint( printdata );
 
       //!!!
+      Initializeprinting( printdata );
+      //!!! 
+      //in loop?
+      Printnextpage( printdata );
+
+       // Set struct printdata values (by function steps???
+#ifdef _WIN32
+      //printdata.hfile = GET HANDLE
+      //FILETIME = GET FILETIME FROM HANDLE
+#elif __linux__
+      //modified = GET TIME FROM STAT
+#endif 
+      //!!! what other data needed?
+     
     }
     else {
       // Input file must be a valid bitmap 
@@ -170,8 +167,6 @@ int main(int argc, char ** argv) {
     }
 
     Freeprocdata(&procdata);
-    Stopprinting(&printdata);
-
   } 
   catch (const cxxopts::OptionException& e) {
     cerr << "error parsing options: " << e.what() << endl;
