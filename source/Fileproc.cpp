@@ -45,6 +45,7 @@
 
 
 t_fproc   fproc;         // extern
+char      outfile[MAXPATH];
 
 
 // Clears descriptor of processed file
