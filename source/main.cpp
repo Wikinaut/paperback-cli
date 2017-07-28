@@ -135,10 +135,10 @@ int main(int argc, char ** argv) {
       
       // Get several options
       // Opens buffer for arbitrary data
-      Preparefiletoprint( &printdata );
+//      Preparefiletoprint( &printdata );
 
       //!!!
-      Initializeprinting( &printdata );
+//      Initializeprinting( &printdata );
       //!!! 
       //in loop?
       Printnextpage( &printdata );

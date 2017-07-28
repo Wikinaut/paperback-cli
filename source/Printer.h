@@ -38,6 +38,7 @@ typedef struct t_printdata {           // Print control structure
   HANDLE         hfile;                // Handle of input file
   FILETIME       modified;             // Time of last file modification
   #elif __linux
+  FILE           *hfile;
   time_t         modified;             // Time of last file modification
   #endif
   ulong          attributes;           // File attributes
@@ -90,11 +91,12 @@ extern int       resx,resy;            // Printer resolution, dpi (may be 0!)
 extern t_printdata printdata;          // Print control structure
 
 void   Printfile(const std::string &path, const std::string &bmp);
-void   Preparefiletoprint(t_printdata *print);
-void   Initializeprinting(t_printdata *print);
+//void   Preparefiletoprint(t_printdata *print);
+//void   Initializeprinting(t_printdata *print);
+void   Stopprinting(t_printdata *print);
 void   Printnextpage(t_printdata *print);
-void   Drawblock(int index,t_data *block,uchar *bits,int width,int height,
+static void   Drawblock(int index,t_data *block,uchar *bits,int width,int height,
                   int border,int nx,int ny,int dx,int dy,int px,int py,int black);
-void   Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
+static void   Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
                   int border,int nx,int ny,int dx,int dy,int px,int py,int black);
 #endif
