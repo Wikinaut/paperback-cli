@@ -21,6 +21,7 @@
 #include <string>
 #include "cxxopts.hpp"
 #include "Decoder.h"
+#include "Global.h"
 #include "Printer.h"
 
 using namespace std;
@@ -31,10 +32,20 @@ using namespace std;
 
 
 
+inline bool isSwitchValid(int value)
+{
+  return ( value < 0 || value > 1 );
+}
+
+
+
 // redundancy 1 to 10
 // dot size 50 to 100
 // dpi 40 to 300
-bool validate(cxxopts::Options &o) {
+bool validate(cxxopts::Options &o) 
+{
+  cout << "no-header: " << o["no-header"].as<int>() << endl;
+  cout << "border: " << o["border"].as<int>() << endl;
     bool is_ok = true;
     if (o["i"].as<string>().empty()) {
         cerr << "error: no input file given" << endl;
@@ -61,6 +72,15 @@ bool validate(cxxopts::Options &o) {
         cerr << "error: invalid mode given" << endl;
         is_ok = false;
     }
+    if ( isSwitchValid(o["no-header"].as<int>()) ) {
+        cerr << "error: invalid value given for no-header switch" << endl;
+        is_ok = false;
+    }
+    if ( isSwitchValid(o["border"].as<int>()) ) {
+        cerr << "error: invalid value given for border switch" << endl;
+        is_ok = false;
+    }
+
     return is_ok;
 }
 
@@ -91,6 +111,12 @@ cxxopts::Options arguments(int ac, char **av) {
         ("r,redundancy", 
             "data redundancy ratio of input or output bitmap as a reciprocal, between 2 and 10", 
             cxxopts::value<int>() -> default_value("5"))
+        ("n,no-header", 
+            "disable printing of file name, last modify date and time, file size, and page number as a header",
+            cxxopts::value<int>() -> default_value("0")-> implicit_value("1"))
+        ("b,border", 
+            "print a black border around the block", 
+            cxxopts::value<int>() -> default_value("0")-> implicit_value("1"))
         ;
     o.parse_positional(parg);
     o.parse(ac, av);
@@ -113,6 +139,12 @@ cxxopts::Options arguments(int ac, char **av) {
 int main(int argc, char ** argv) {
   try {
     cxxopts::Options options = arguments(argc, argv);
+    // set arguments to extern (global) variables
+    dpi = options["dpi"].as<int>();
+    dotpercent = options["dotsize"].as<int>();
+    redundancy = options["redundancy"].as<int>();
+    printheader = ( ! options["no-header"].as<int>() );
+    printborder = options["border"].as<int>(); 
 
     // decode = !encode
     bool isEncode = options["mode"].as<string>().compare("encode") == 0;
@@ -139,9 +171,11 @@ int main(int argc, char ** argv) {
       // Construct superblock
       Initializeprinting( &printdata );
       //Create BMPs until all data has been written to BMP
-      int currStep = printdata.step;
-      while ( printdata.step == currStep ) {
-      Printnextpage( &printdata );
+      int bmpNo = 1;
+      while ( printdata.step != 0 ) {
+        cout << "Creating BMP #" << bmpNo << " " << outfile << endl;
+        Printnextpage( &printdata );
+        ++bmpNo;
       }
     }
     else {
@@ -153,8 +187,7 @@ int main(int argc, char ** argv) {
       // Get more attributes and allocate memory for decoding
       Preparefordecoding(&procdata);
       // Decode block by block until step changes
-      int currStep = procdata.step;
-      while ( procdata.step == currStep ) {
+      while ( procdata.step != 0 ) {
         Decodenextblock(&procdata);
       }
       Finishdecoding(&procdata);

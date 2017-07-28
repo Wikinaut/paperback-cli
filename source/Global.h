@@ -41,24 +41,12 @@ typedef unsigned long  ulong;
 
 #define TEXTLEN        256             // Maximal length of strings
 
-#ifdef __WIN32
-#define MAXPATH 247 // max file path characters
-#define MAXFILE 255 // max file name characters
-#define MAXEXT 245    // max characters of file extension
-// Assuming smaller capacity FAT32, not NTFS
-#define MAXDIR 65534    // max files in a directory
-#define MAXDRIVE 268173300
-
-#elif __linux__
-#define MAXPATH 4096 // max file path characters
-#define MAXFILE 255  // max file name characters
-#define MAXEXT 4094  // max characters of file extension
-// Performance issues in ext2 beyond 10000 files
-#define MAXDIR 10000 // max files in a directory
-// 10^18 in ext2 and more in later filesystems
-// using max value of 32-bit int for compatibility
-#define MAXDRIVE 2147483647
-#endif
+//Arbitrary values set by Borland compiler
+#define MAXPATH 80
+#define MAXFILE 9 
+#define MAXEXT 5    
+#define MAXDIR 66 
+#define MAXDRIVE 3
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// DATA PROPERTIES ////////////////////////////////
