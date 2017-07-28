@@ -56,22 +56,24 @@ bool validate(cxxopts::Options &o) {
         cerr << "error: invalid value for redundancy" << endl;
         is_ok = false;
     }
+    if ((o["mode"].as<string>().compare("encode") != 0) && 
+         o["mode"].as<string>().compare("decode") != 0) {
+        cerr << "error: invalid mode given" << endl;
+        is_ok = false;
+    }
     return is_ok;
 }
 
-cxxopts::Options arguments(int ac, char **av, bool &isEncode, bool &isDecode) {
+cxxopts::Options arguments(int ac, char **av) {
     cxxopts::Options o(av[0],
                        "Encodes or decodes high-density printable file backups.");
-    vector<string> parg = {"input", "output"};
+    vector<string> parg = {"mode", "input", "output"};
     o.add_options()
         ("h,help", "displays help")
         ("v,version", "Display version and information relevant to that version")
-        ("encode", 
-            "action to encode data to bitmap", 
-            cxxopts::value<bool>(isEncode))
-        ("decode", 
-            "action to decode data from bitmap", 
-            cxxopts::value<bool>(isDecode))
+        ("mode", 
+            "encode or decode, operation on input and output", 
+            cxxopts::value<string>())
         ("i,input", 
             "file to encode to or decode from",
             cxxopts::value<string>(),
@@ -113,10 +115,10 @@ cxxopts::Options arguments(int ac, char **av, bool &isEncode, bool &isDecode) {
 
 int main(int argc, char ** argv) {
   try {
-    bool isEncode = false;
-    bool isDecode = false;
-    cxxopts::Options options = arguments(argc, argv, isEncode, isDecode);
+    cxxopts::Options options = arguments(argc, argv);
 
+    // decode = !encode
+    bool isEncode = options["mode"].as<string>().compare("encode") == 0;
 
     // around line 507 in original
 
@@ -154,7 +156,7 @@ int main(int argc, char ** argv) {
 
       //!!!
     }
-    else if( isDecode ) {
+    else {
       // Input file must be a valid bitmap 
       // Verify the input file has valid bitmap header
       //!!!
