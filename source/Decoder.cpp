@@ -34,12 +34,10 @@
 #include <stdio.h>
 #include <sstream>
 #include "Crc16.h"
+#include "Bitmap.h"
 #include "Decoder.h"
 #include "Ecc.h"
 #include "Fileproc.h"
-#ifdef __linux__
-#include "Bitmap.h"
-#endif
 
 #define NHYST          1024            // Number of points in histogramm
 #define NPEAK          32              // Maximal number of peaks

@@ -21,8 +21,8 @@
 #include <cstring>
 #include <string>
 #include "Global.h"
-#ifdef __linux__
 #include "Bitmap.h"
+#ifdef __linux__
 #include <sys/stat.h>
 #endif
 
