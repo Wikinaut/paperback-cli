@@ -83,7 +83,7 @@ typedef struct t_printdata {           // Print control structure
   int            border;               // Border around the data grid, pixels
   uchar          *dibbits;             // Pointer to DIB bits
   uchar          *drawbits;            // Pointer to file bitmap bits
-  uchar          bmi[sizeof(BITMAPINFO)+256*sizeof(RGBQUAD)]; // Bitmap info
+  uchar          bmi[sizeof(BitmapInfo)+256*sizeof(RgbQuad)]; // Bitmap info
   int            startdoc;             // Print job started
 } t_printdata;
 
