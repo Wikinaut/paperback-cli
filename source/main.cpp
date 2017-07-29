@@ -179,19 +179,19 @@ int main(int argc, char ** argv) {
     }
     else {
       // Get attributes of the inputted bitmap
-      Decodebitmap(infile.c_str());
-      Getgridposition(&procdata);
-      Getgridintensity(&procdata);
-      Getxangle(&procdata);
-      Getyangle(&procdata);
-      // Get more attributes and allocate memory for decoding
-      Preparefordecoding(&procdata);
-      // Decode block by block until step changes
-      while ( procdata.step != 0 ) {
-        Decodenextblock(&procdata);
+      if ( Decodebitmap(infile.c_str()) == 0 ) {
+        Getgridposition(&procdata);
+        Getgridintensity(&procdata);
+        Getxangle(&procdata);
+        Getyangle(&procdata);
+        // Get more attributes and allocate memory for decoding
+        Preparefordecoding(&procdata);
+        // Decode block by block until step changes
+        while ( procdata.step != 0 ) {
+          Decodenextblock(&procdata);
+        }
+        Finishdecoding(&procdata);
       }
-      Finishdecoding(&procdata);
-
     }
 
     Freeprocdata(&procdata);

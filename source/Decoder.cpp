@@ -1082,16 +1082,44 @@ int Decodebitmap(const std::string &fileName) {
   };
   pbfh=(BITMAPFILEHEADER *)buf;
   pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
-  if (pbfh->bfType!=19778 || //First two bytes must be 'BM' (19778)
-    pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ||
-    (pbih->biBitCount!=8 && pbih->biBitCount!=24) ||
-    (pbih->biBitCount==24 && pbih->biClrUsed!=0) ||
-    pbih->biCompression!=BI_RGB ||
-    pbih->biWidth<128 || pbih->biWidth>32768 ||
-    pbih->biHeight<128 || pbih->biHeight>32768
-  ) {                                  // Invalid bitmap type
+  if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
     std::ostringstream oss;
-    oss << "Unsupported bitmap type: " << fileName << std::endl;
+    oss << "Input file is not a bitmap: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  std::cout << "Color bits per pixel: " << pbih->biBitCount << std::endl;
+  if ( pbih->biBitCount!=8 && pbih->biBitCount!=24) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Must be 8-bit or 24-bit color: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  std::cout << "# of colors (if 24-bit): " << pbih->biClrUsed << std::endl;
+  if ( pbih->biBitCount==24 && pbih->biClrUsed!=0) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: 24-bit color bitmaps required to specify number of colors used: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if ( pbih->biCompression!=BI_RGB ) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Must be uncompressed (not JPEG, PNG, or RLE) and not BITFIELDS-based: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if (  pbih->biWidth<128 || pbih->biWidth>32768 ||
+    pbih->biHeight<128 || pbih->biHeight>32768
+  ) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Height and width must be between 128 and 32768: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if ( pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ) {
+    // Invalid bitmap type
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: size mismatch or invalid planes value (internal error): " << fileName << std::endl;
     Reporterror(oss.str());
     fclose(f); 
     return -1; 
