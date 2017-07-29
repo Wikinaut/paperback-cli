@@ -1056,7 +1056,7 @@ int Decodebitmap(const std::string &fileName) {
   //strncpy(inbmp,path,sizeof(inbmp));
   //inbmp[sizeof(inbmp)-1]='\0'; 
   //}
-  //fnsplit(inbmp,NULL,NULL,fil,ext); //!!! parse out filename from path?
+  //fnsplit(inbmp,NULL,NULL,fil,ext);
   //sprintf(s,"Reading %s%s...",fil,ext);
   //Message(s,0);
   //Updatebuttons(); //GUI
@@ -1082,9 +1082,17 @@ int Decodebitmap(const std::string &fileName) {
   };
   pbfh=(BITMAPFILEHEADER *)buf;
   pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
+  std::cout << "Size of bmp file header: " << sizeof(*pbfh) << std::endl;
+  std::cout << "Size of bmp info header: " << sizeof(*pbih) << std::endl;
   if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
     std::ostringstream oss;
     oss << "Input file is not a bitmap: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if ( pbih->biCompression!=BI_RGB ) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Must be uncompressed (not JPEG, PNG, or RLE) and not BITFIELDS-based: " << fileName << std::endl;
     Reporterror(oss.str());
     return -1;
   }
@@ -1102,12 +1110,6 @@ int Decodebitmap(const std::string &fileName) {
     Reporterror(oss.str());
     return -1;
   }
-  if ( pbih->biCompression!=BI_RGB ) {
-    std::ostringstream oss;
-    oss << "Unsupported Bitmap: Must be uncompressed (not JPEG, PNG, or RLE) and not BITFIELDS-based: " << fileName << std::endl;
-    Reporterror(oss.str());
-    return -1;
-  }
   if (  pbih->biWidth<128 || pbih->biWidth>32768 ||
     pbih->biHeight<128 || pbih->biHeight>32768
   ) {
@@ -1117,7 +1119,6 @@ int Decodebitmap(const std::string &fileName) {
     return -1;
   }
   if ( pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ) {
-    // Invalid bitmap type
     std::ostringstream oss;
     oss << "Unsupported Bitmap: size mismatch or invalid planes value (internal error): " << fileName << std::endl;
     Reporterror(oss.str());
