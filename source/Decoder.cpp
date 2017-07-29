@@ -34,10 +34,12 @@
 #include <stdio.h>
 #include <sstream>
 #include "Crc16.h"
-#include "Bitmap.h"
 #include "Decoder.h"
 #include "Ecc.h"
 #include "Fileproc.h"
+#ifdef __linux__
+#include "Bitmap.h"
+#endif
 
 #define NHYST          1024            // Number of points in histogramm
 #define NPEAK          32              // Maximal number of peaks
@@ -1039,10 +1041,10 @@ void Stopbitmapdecoding(t_procdata *pdata) {
 // Opens and decodes bitmap. Returns 0 on success and -1 on error.
 int Decodebitmap(const std::string &fileName) {
   int i,size;
-  uchar *data,buf[sizeof(BitmapFileHeader)+sizeof(BitmapInfoHeader)];
+  uchar *data,buf[sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)];
   FILE *f;
-  BitmapFileHeader *pbfh;
-  BitmapInfoHeader *pbih;
+  BITMAPFILEHEADER *pbfh;
+  BITMAPINFOHEADER *pbih;
   //HCURSOR prevcursor; //GUI
   // Ask for file name.
   //!!! REQUIRE input bmp exists before this can be run
@@ -1078,8 +1080,8 @@ int Decodebitmap(const std::string &fileName) {
     fclose(f); 
     return -1; 
   };
-  pbfh=(BitmapFileHeader *)buf;
-  pbih=(BitmapInfoHeader *)(buf+sizeof(BitmapFileHeader));
+  pbfh=(BITMAPFILEHEADER *)buf;
+  pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
   std::cout << "Size of bmp file header: " << sizeof(*pbfh) << std::endl;
   std::cout << "Size of bmp info header: " << sizeof(*pbih) << std::endl;
   if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
@@ -1116,7 +1118,7 @@ int Decodebitmap(const std::string &fileName) {
     Reporterror(oss.str());
     return -1;
   }
-  if ( pbih->biSize!=sizeof(BitmapInfoHeader) || pbih->biPlanes!=1 ) {
+  if ( pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ) {
     std::ostringstream oss;
     oss << "Unsupported Bitmap: size mismatch or invalid planes value (internal error): " << fileName << std::endl;
     Reporterror(oss.str());
@@ -1125,14 +1127,14 @@ int Decodebitmap(const std::string &fileName) {
   };
   // Allocate buffer and read file.
   fseek(f,0,SEEK_END);
-  size=ftell(f)-sizeof(BitmapFileHeader);
+  size=ftell(f)-sizeof(BITMAPFILEHEADER);
   data=(uchar *)malloc(size);
   if (data==NULL) {                    // Unable to allocate memory
     Reporterror("Low memory");
     fclose(f); 
     return -1; 
   };
-  fseek(f,sizeof(BitmapFileHeader),SEEK_SET);
+  fseek(f,sizeof(BITMAPFILEHEADER),SEEK_SET);
   i=fread(data,1,size,f);
   fclose(f);
   if (i!=size) {                       // Unable to read bitmap
@@ -1143,7 +1145,7 @@ int Decodebitmap(const std::string &fileName) {
     return -1; 
   };
   // Process bitmap.
-  ProcessDIB(data,pbfh->bfOffBits-sizeof(BitmapFileHeader));
+  ProcessDIB(data,pbfh->bfOffBits-sizeof(BITMAPFILEHEADER));
   free(data);
   return 0;
 };
@@ -1154,13 +1156,13 @@ int Decodebitmap(const std::string &fileName) {
 int ProcessDIB(void *hdata,int offset) {
   int i,j,sizex,sizey,ncolor;
   uchar scale[256],*data,*pdata,*pbits;
-  BitmapInfo *pdib;
-  //pdib=(BitmapInfo *)GlobalLock(hdata);
-  pdib =(BitmapInfo *)hdata;
+  BITMAPINFO *pdib;
+  //pdib=(BITMAPINFO *)GlobalLock(hdata);
+  pdib =(BITMAPINFO *)hdata;
   if (pdib==NULL)
     return -1;                         // Something is wrong with this DIB
   // Check that bitmap is more or less valid.
-  if (pdib->bmiHeader.biSize!=sizeof(BitmapInfoHeader) ||
+  if (pdib->bmiHeader.biSize!=sizeof(BITMAPINFOHEADER) ||
     pdib->bmiHeader.biPlanes!=1 ||
     (pdib->bmiHeader.biBitCount!=8 && pdib->bmiHeader.biBitCount!=24) ||
     (pdib->bmiHeader.biBitCount==24 && pdib->bmiHeader.biClrUsed!=0) ||
@@ -1188,7 +1190,7 @@ int ProcessDIB(void *hdata,int offset) {
     else {
       for (i=0; i<256; i++) scale[i]=(uchar)i; };
     if (offset==0)
-      offset=sizeof(BitmapInfoHeader)+ncolor*sizeof(RgbQuad);
+      offset=sizeof(BITMAPINFOHEADER)+ncolor*sizeof(RGBQUAD);
     pdata=data;
     for (j=0; j<sizey; j++) {
       offset=(offset+3) & 0xFFFFFFFC;
@@ -1200,7 +1202,7 @@ int ProcessDIB(void *hdata,int offset) {
   else {
     // 24-bit bitmap without palette.
     if (offset==0)
-      offset=sizeof(BitmapInfoHeader)+ncolor*sizeof(RgbQuad);
+      offset=sizeof(BITMAPINFOHEADER)+ncolor*sizeof(RGBQUAD);
     pdata=data;
     for (j=0; j<sizey; j++) {
       offset=(offset+3) & 0xFFFFFFFC;

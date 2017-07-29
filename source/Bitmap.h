@@ -25,16 +25,16 @@
 
 
 
-typedef struct BitmapFileHeader {
+typedef struct BITMAPFILEHEADER {
   uint16_t bfType = 19778;  //filetype, must be 'BM' (19778)
   uint32_t bfSize;          //size in bytes of bitmap file 
   uint16_t bfReserved1 = 0; //unused, except to keep alignment
   uint16_t bfReserved2 = 0; //unused, except to keep alignment
   uint32_t bfOffBits;       //offset in bytes from beginning of 
                             // BITMAPFILEHEADER to the bitmap bits
-} BitmapFileHeader;
+} BITMAPFILEHEADER;
 
-typedef struct BitmapInfoHeader {
+typedef struct BITMAPINFOHEADER {
   uint32_t biSize;         //# of bytes in struct
   int32_t biWidth;         //width of bitmap in pixels
   int32_t biHeight;        //height of bitmap in pixels
@@ -49,18 +49,18 @@ typedef struct BitmapInfoHeader {
                            //  if 0, bitmap uses max # of colors that
                            //  correspond to biBitCount
   uint32_t biClrImportant; //# of color indices required for displaying bitmap
-} BitmapInfoHeader; 
+} BITMAPINFOHEADER; 
 
-typedef struct RgbQuad {
+typedef struct RGBQUAD {
   unsigned char rgbBlue;
   unsigned char rgbGreen;
   unsigned char rgbRed;
   unsigned char rgbReserved = 0;
-} RgbQuad;
+} RGBQUAD;
 
-typedef struct BitmapInfo {
-  BitmapInfoHeader bmiHeader;
-  RgbQuad          bmiColors[1];
+typedef struct BITMAPINFO {
+  BITMAPINFOHEADER bmiHeader;
+  RGBQUAD          bmiColors[1];
 } BITMAPINFO;
 
 

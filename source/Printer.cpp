@@ -458,8 +458,8 @@ void Initializeprinting(t_printdata *print) {
   // Fill in bitmap header. To simplify processing, I use 256-color bitmap
   // (1 byte per pixel).
   pbmi=(BITMAPINFO *)print->bmi;
-  memset(pbmi,0,sizeof(BitmapInfoHeader));
-  pbmi->bmiHeader.biSize=sizeof(BitmapInfoHeader);
+  memset(pbmi,0,sizeof(BITMAPINFOHEADER));
+  pbmi->bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
   pbmi->bmiHeader.biWidth=width;
   pbmi->bmiHeader.biHeight=height;
   pbmi->bmiHeader.biPlanes=1;
@@ -608,7 +608,7 @@ void Printnextpage(t_printdata *print) {
   uchar *bits;
   ulong u,size,pagesize,offset;
   t_data block,cksum;
-  BitmapFileHeader bmfh;
+  BITMAPFILEHEADER bmfh;
   BITMAPINFO *pbmi;
   // Calculate offset of this page in data.
   offset=print->frompage*print->pagesize;
@@ -809,7 +809,7 @@ void Printnextpage(t_printdata *print) {
 
       // Create and save bitmap file header.
       success=1;
-      n=sizeof(BitmapInfoHeader)+256*sizeof(RgbQuad);
+      n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
       bmfh.bfType=19778; //First two bytes are 'BM' (19778)
       bmfh.bfSize=sizeof(bmfh)+n+width*height;
       bmfh.bfReserved1=bmfh.bfReserved2=0;
