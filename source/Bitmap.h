@@ -26,7 +26,7 @@
 
 
 typedef struct BITMAPFILEHEADER {
-  uint16_t bfType = 'BM';   //filetype, must be BM
+  uint16_t bfType = 19778;  //filetype, must be 'BM' (19778)
   uint32_t bfSize;          //size in bytes of bitmap file 
   uint16_t bfReserved1 = 0; //unused, except to keep alignment
   uint16_t bfReserved2 = 0; //unused, except to keep alignment

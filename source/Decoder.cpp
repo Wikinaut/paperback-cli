@@ -30,8 +30,9 @@
 
 #include <algorithm>
 #include <cstring>
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
+#include <sstream>
 #include "Crc16.h"
 #include "Decoder.h"
 #include "Ecc.h"
@@ -358,6 +359,7 @@ void Getgridintensity(t_procdata *pdata) {
   memset(distrc,0,sizeof(distrc));
   memset(distrd,0,sizeof(distrd));
   cmean=0; n=0;
+  std::cout << "dy: " << dy << std::endl;
   for (j=0; j<dy-1; j++) {
     pd=data+(searchy0+j)*sizex+searchx0;
     for (i=0; i<dx-1; i++,pd++) {
@@ -367,6 +369,7 @@ void Getgridintensity(t_procdata *pdata) {
     };
   };
   // Calculate mean, minimal and maximal image intensity.
+  std::cout << cmean << " / " << n << " causing sigfpe" << std::endl;
   cmean/=n;
   limit=n/33;                          // 3% of the total number of pixels
   for (cmin=0,sum=0; cmin<255; cmin++) {
@@ -1011,7 +1014,7 @@ void Freeprocdata(t_procdata *pdata) {
 void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
   // Free resources allocated for the previous bitmap. User may want to
   // browse bitmap while and after it is processed.
-  Freeprocdata(pdata);
+  //Freeprocdata(pdata);
   memset(pdata,0,sizeof(t_procdata));
   pdata->data=data;
   pdata->sizex=sizex;
@@ -1036,9 +1039,8 @@ void Stopbitmapdecoding(t_procdata *pdata) {
 
 
 // Opens and decodes bitmap. Returns 0 on success and -1 on error.
-int Decodebitmap(char *path) {
+int Decodebitmap(const std::string &fileName) {
   int i,size;
-  char s[TEXTLEN+MAXPATH],fil[MAXFILE],ext[MAXEXT];
   uchar *data,buf[sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)];
   FILE *f;
   BITMAPFILEHEADER *pbfh;
@@ -1051,31 +1053,36 @@ int Decodebitmap(char *path) {
     return -1;
   }
   else { */
-  strncpy(inbmp,path,sizeof(inbmp));
-  inbmp[sizeof(inbmp)-1]='\0'; 
+  //strncpy(inbmp,path,sizeof(inbmp));
+  //inbmp[sizeof(inbmp)-1]='\0'; 
   //}
   //fnsplit(inbmp,NULL,NULL,fil,ext); //!!! parse out filename from path?
-  sprintf(s,"Reading %s%s...",fil,ext);
-  Message(s,0);
+  //sprintf(s,"Reading %s%s...",fil,ext);
+  //Message(s,0);
   //Updatebuttons(); //GUI
   // Open file and verify that this is the valid bitmap of known type.
-  f=fopen(inbmp,"rb");
+  f=fopen(fileName.c_str(),"rb");
   if (f==NULL) {                       // Unable to open file
-    sprintf(s,"Unable to open %s%s",fil,ext);
-    Reporterror(s);
-    return -1; };
+    std::ostringstream oss;
+    oss << "Unable to open " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1; 
+  };
   // Reading 100-MB bitmap may take many seconds. Let's inform user by changing
   // mouse pointer.
   //prevcursor=SetCursor(LoadCursor(NULL,IDC_WAIT));
   i=fread(buf,1,sizeof(buf),f);
   //SetCursor(prevcursor);
   if (i!=sizeof(buf)) {                // Unable to read file
-    sprintf(s,"Unable to read %s%s",fil,ext);
-    Reporterror(s);
-    fclose(f); return -1; };
+    std::ostringstream oss;
+    oss << "Unable to read " << fileName << std::endl;
+    Reporterror(oss.str());
+    fclose(f); 
+    return -1; 
+  };
   pbfh=(BITMAPFILEHEADER *)buf;
   pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
-  if (pbfh->bfType!='BM' ||
+  if (pbfh->bfType!=19778 || //First two bytes must be 'BM' (19778)
     pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ||
     (pbih->biBitCount!=8 && pbih->biBitCount!=24) ||
     (pbih->biBitCount==24 && pbih->biClrUsed!=0) ||
@@ -1083,24 +1090,31 @@ int Decodebitmap(char *path) {
     pbih->biWidth<128 || pbih->biWidth>32768 ||
     pbih->biHeight<128 || pbih->biHeight>32768
   ) {                                  // Invalid bitmap type
-    sprintf(s,"Unsupported bitmap type: %s%s",fil,ext);
-    Reporterror(s);
-    fclose(f); return -1; };
+    std::ostringstream oss;
+    oss << "Unsupported bitmap type: " << fileName << std::endl;
+    Reporterror(oss.str());
+    fclose(f); 
+    return -1; 
+  };
   // Allocate buffer and read file.
   fseek(f,0,SEEK_END);
   size=ftell(f)-sizeof(BITMAPFILEHEADER);
   data=(uchar *)malloc(size);
   if (data==NULL) {                    // Unable to allocate memory
     Reporterror("Low memory");
-    fclose(f); return -1; };
+    fclose(f); 
+    return -1; 
+  };
   fseek(f,sizeof(BITMAPFILEHEADER),SEEK_SET);
   i=fread(data,1,size,f);
   fclose(f);
   if (i!=size) {                       // Unable to read bitmap
-    sprintf(s,"Unable to read %s%s",fil,ext);
-    Reporterror(s);
+    std::ostringstream oss;
+    oss << "Unable to read: " << fileName << std::endl;
+    Reporterror(oss.str());
     free(data);
-    return -1; };
+    return -1; 
+  };
   // Process bitmap.
   ProcessDIB(data,pbfh->bfOffBits-sizeof(BITMAPFILEHEADER));
   free(data);

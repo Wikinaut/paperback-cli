@@ -810,7 +810,7 @@ void Printnextpage(t_printdata *print) {
       // Create and save bitmap file header.
       success=1;
       n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
-      bmfh.bfType='BM';
+      bmfh.bfType=19778; //First two bytes are 'BM' (19778)
       bmfh.bfSize=sizeof(bmfh)+n+width*height;
       bmfh.bfReserved1=bmfh.bfReserved2=0;
       bmfh.bfOffBits=sizeof(bmfh)+n;

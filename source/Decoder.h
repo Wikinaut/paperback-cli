@@ -74,6 +74,7 @@ extern int       orientation;          // Orientation of bitmap (-1: unknown)
 extern t_procdata procdata;            // Descriptor of processed data
 
 //void   Nextdataprocessingstep(t_procdata *pdata);
+int    Decodebitmap(const std::string &fileName);
 void   Getgridposition(t_procdata *pdata);
 void   Getgridintensity(t_procdata *pdata);
 void   Getxangle(t_procdata *pdata);
@@ -85,7 +86,6 @@ void   Freeprocdata(t_procdata *pdata);
 void   Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey);
 void   Stopbitmapdecoding(t_procdata *pdata);
 int    Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result);
-int    Decodebitmap(char *path);
 int    ProcessDIB(void *hdata,int offset);
 
 #endif //DECODER_H

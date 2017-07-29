@@ -179,6 +179,7 @@ int main(int argc, char ** argv) {
     }
     else {
       // Get attributes of the inputted bitmap
+      Decodebitmap(infile.c_str());
       Getgridposition(&procdata);
       Getgridintensity(&procdata);
       Getxangle(&procdata);
