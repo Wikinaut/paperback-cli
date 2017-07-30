@@ -22,7 +22,7 @@
 #include <string>
 #include "Global.h"
 
-#define M_BEST         0x00000001      // Search for best possible quality
+#define M_BEST         0x00000000      // Search for best possible quality
 
 
 

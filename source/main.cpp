@@ -178,6 +178,8 @@ int main(int argc, char ** argv) {
       }
     }
     else {
+      // Process 1 or more bitmaps
+      //!!! add loop after a single page decodes successfully
       // Get attributes of the inputted bitmap
       if ( Decodebitmap(infile.c_str())    == 0 
            && Getgridposition(&procdata)   == 0 
@@ -185,12 +187,14 @@ int main(int argc, char ** argv) {
            && Getxangle(&procdata)         == 0 
            && Getyangle(&procdata)         == 0 
         ) {
-        // Get more attributes and allocate memory for decoding
+        // Set internal options and allocate memory for decoding
         Preparefordecoding(&procdata);
-        // Decode block by block until step changes
-        while ( procdata.step != 0 ) {
+        // Decode block by block until step is set to 0
+        int currStep = procdata.step;
+        while ( procdata.step == currStep ) {
           Decodenextblock(&procdata);
         }
+        // Passes converted data to File Processor and frees recources
         Finishdecoding(&procdata);
       }
     }

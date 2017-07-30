@@ -873,7 +873,8 @@ void Decodenextblock(t_procdata *pdata) {
     pdata->superblock.name,pdata->superblock.page);
   percent=(pdata->posy*pdata->nposx+pdata->posx)*100/
     (pdata->nposx*pdata->nposy);
-  Message(s,percent);
+  if( percent % 10 == 0 )
+    Message(s,percent);
   // Decode block.
   answer=Decodeblock(pdata,pdata->posx,pdata->posy,&result);
   // If we are unable to locate block, probably we are outside the raster.
@@ -936,10 +937,11 @@ finish:
 // Passes gathered data to file processor and frees resources allocated by call
 // to Preparefordecoding().
 void Finishdecoding(t_procdata *pdata) {
+  std::cout << "Finished decoding bitmap" << std::endl;
   int i,fileindex;
   // Pass gathered data to file processor.
   if (pdata->superblock.addr==0)
-    Reporterror("Page label is not readable");
+    Reporterror("Superblock address is not readable, failed to write decoded data to file");
   else {
     fileindex=Startnextpage(&pdata->superblock);
     if (fileindex>=0) {
@@ -1126,11 +1128,11 @@ int Decodebitmap(const std::string &fileName) {
 #endif
 
     std::cout //<< pbfh << "\n"
-         << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"
-         << pbfh -> bfSize << ", " << &pbfh -> bfSize <<"\n"
+         << "bfType: " << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"
+         << "bfSize: " << pbfh -> bfSize << ", " << &pbfh -> bfSize <<"\n"
          << pbfh -> bfReserved1 << ", " << &pbfh -> bfReserved1 <<"\n"
          << pbfh -> bfReserved2 << ", " << &pbfh -> bfReserved2 <<"\n"
-         << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
+         << "bfOffBits : " << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
          << std::endl;
     std::cout //<< pbih << "\n"
          << "biSize: " << pbih -> biSize << ", " << &pbih -> biSize << "\n"
@@ -1207,7 +1209,7 @@ int Decodebitmap(const std::string &fileName) {
     return -1; 
   };
   // Process bitmap.
-  if ( ! ProcessDIB(data,pbfh->bfOffBits-sizeof(OverlayBitmapFileHeader))) {
+  if ( ProcessDIB(data,pbfh->bfOffBits-sizeof(OverlayBitmapFileHeader) == 0 )) {
     std::cerr << "Error: Processing the DIB has failed" << std::endl;
     return -1;
   }
@@ -1224,8 +1226,10 @@ int ProcessDIB(void *hdata,int offset) {
   BITMAPINFO *pdib;
   //pdib=(BITMAPINFO *)GlobalLock(hdata);
   pdib =(BITMAPINFO *)hdata;
-  if (pdib==NULL)
-    return -1;                         // Something is wrong with this DIB
+  if (pdib==NULL) {
+    std::cerr << "Invalid pointer to DIB data (internal error)" << std::endl;
+    return -1;                         
+  }
   // Check that bitmap is more or less valid.
   if (pdib->bmiHeader.biSize!=sizeof(BITMAPINFOHEADER) ||
     pdib->bmiHeader.biPlanes!=1 ||
@@ -1236,6 +1240,7 @@ int ProcessDIB(void *hdata,int offset) {
     pdib->bmiHeader.biHeight<128 || pdib->bmiHeader.biHeight>32768
   ) {
     //GlobalUnlock(hdata);
+    std::cerr << "Invalid header information passed to ProcessDIB (internal error" << std::endl;
     return -1;
   };                      // Not a known bitmap!
   sizex=pdib->bmiHeader.biWidth;
@@ -1245,7 +1250,9 @@ int ProcessDIB(void *hdata,int offset) {
   data=(uchar *)malloc(sizex*sizey);
   if (data==NULL) {
     //GlobalUnlock(hdata);
-    return -1; };
+    std::cerr << "Not enough memory to convert DIB to grayscale" << std::endl;
+    return -1; 
+  };
   if (pdib->bmiHeader.biBitCount==8) {
     // 8-bit bitmap with palette.
     if (ncolor>0) {
