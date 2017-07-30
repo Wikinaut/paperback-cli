@@ -47,7 +47,9 @@
 #define SUBDY          8               // Y size of subblock, pixels
 
 
-
+#ifdef _WIN32
+#define OverlayBitmapFileHeader BITMAPFILEHEADER
+#endif
 
 char      inbmp[MAXPATH];       // extern
 t_procdata procdata;            // extern
