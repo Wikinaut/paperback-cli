@@ -268,7 +268,7 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
 
 
 // Determines rough grid position.
-void Getgridposition(t_procdata *pdata) {
+int Getgridposition(t_procdata *pdata) {
   int i,j,nx,ny,stepx,stepy,sizex,sizey;
   int c,cmin,cmax,distrx[256],distry[256],limit;
   uchar *data,*pd;
@@ -279,7 +279,9 @@ void Getgridposition(t_procdata *pdata) {
   // Check overall bitmap size.
   if (sizex<=3*NDOT || sizey<=3*NDOT) {
     Reporterror("Bitmap is too small to process");
-    pdata->step=0; return; };
+    pdata->step=0; 
+    return -1; 
+  };
   // Select horizontal and vertical lines (at most 256 in each direction) to
   // check for grid location.
   stepx=sizex/256+1; nx=(sizex-2)/stepx; if (nx>256) nx=256;
@@ -326,14 +328,20 @@ void Getgridposition(t_procdata *pdata) {
   for (j=ny-1; j>0; j--) {
     if (distry[j]>=limit) break; };
   pdata->gridymax=j*stepy;
+
+  std::cout << "pdata->gridxmax: " << pdata->gridxmax << std::endl;
+  std::cout << "pdata->gridymax: " << pdata->gridymax << std::endl;
+  std::cout << "pdata->gridxmin: " << pdata->gridxmin << std::endl;
+  std::cout << "pdata->gridymin: " << pdata->gridymin << std::endl;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
 
 
 // Selects search range, determines grid intensity and estimates sharpness.
-void Getgridintensity(t_procdata *pdata) {
+int Getgridintensity(t_procdata *pdata) {
   int i,j,sizex,sizey,centerx,centery,dx,dy,n;
   int searchx0,searchy0,searchx1,searchy1;
   int distrc[256],distrd[256],cmean,cmin,cmax,limit,sum,contrast;
@@ -369,7 +377,10 @@ void Getgridintensity(t_procdata *pdata) {
     };
   };
   // Calculate mean, minimal and maximal image intensity.
-  std::cout << cmean << " / " << n << " causing sigfpe" << std::endl;
+  if( n == 0 ) {
+    std::cerr << "Number of data points is 0, avoiding divide by 0 (internal error)" << std::endl;
+    return -1;
+  }
   cmean/=n;
   limit=n/33;                          // 3% of the total number of pixels
   for (cmin=0,sum=0; cmin<255; cmin++) {
@@ -381,7 +392,8 @@ void Getgridintensity(t_procdata *pdata) {
   if (cmax-cmin<1) {
     Reporterror("No Image");
     pdata->step=0;
-    return; };
+    return -1; 
+  };
   // Estimate image sharpness. The factor is rather empirical. Later, when
   // dot size is known, this value will be corrected.
   limit=n/10;                          // 5% (each point is counted twice)
@@ -399,12 +411,13 @@ void Getgridintensity(t_procdata *pdata) {
   pdata->cmax=cmax;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
 
 
 // Find angle and step of vertical grid lines.
-void Getxangle(t_procdata *pdata) {
+int Getxangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex;
   int h[NHYST],nh[NHYST],ystep;
   uchar *data,*pd;
@@ -459,18 +472,20 @@ void Getxangle(t_procdata *pdata) {
   if (maxweight==0.0 || bestxstep<NDOT) {
     Reporterror("No grid");
     pdata->step=0;
-    return; };
+    return -1;
+  };
   pdata->xpeak=bestxpeak;
   pdata->xstep=bestxstep;
   pdata->xangle=bestxangle;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
 
 
 // Find angle and step of horizontal grid lines. Very similar to Getxangle().
-void Getyangle(t_procdata *pdata) {
+int Getyangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex,sizey;
   int h[NHYST],nh[NHYST],xstep;
   uchar *data,*pd;
@@ -524,12 +539,14 @@ void Getyangle(t_procdata *pdata) {
   ) {
     Reporterror("No grid");
     pdata->step=0;
-    return; };
+    return -1;
+  };
   pdata->ypeak=bestypeak;
   pdata->ystep=bestystep;
   pdata->yangle=bestyangle;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
 
@@ -1114,16 +1131,17 @@ int Decodebitmap(const std::string &fileName) {
          << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
          << std::endl;
     std::cout //<< pbih << "\n"
-         << pbih -> biSize << ", " << &pbih -> biSize << "\n"
-         << pbih -> biWidth << ", " << &pbih -> biWidth << "\n"
-         << pbih -> biHeight << ", " << &pbih -> biHeight << "\n"
-         << pbih -> biPlanes << ", " << &pbih -> biPlanes << "\n"
-         << pbih -> biBitCount << ", " << &pbih -> biBitCount << "\n"
-         << pbih -> biCompression << ", " << &pbih -> biCompression << "\n"
-         << pbih -> biSizeImage << ", " << &pbih -> biSizeImage << "\n"
-         << pbih -> biXPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
-         << pbih -> biClrUsed << ", " << &pbih -> biClrUsed << "\n"
-         << pbih -> biClrImportant << ", " << &pbih -> biClrImportant << "\n"
+         << "biSize: " << pbih -> biSize << ", " << &pbih -> biSize << "\n"
+         << "biWidth: " << pbih -> biWidth << ", " << &pbih -> biWidth << "\n"
+         << "biHeight: " << pbih -> biHeight << ", " << &pbih -> biHeight << "\n"
+         << "biPlanes: " << pbih -> biPlanes << ", " << &pbih -> biPlanes << "\n"
+         << "biBitCount: " << pbih -> biBitCount << ", " << &pbih -> biBitCount << "\n"
+         << "biCompression: " << pbih -> biCompression << ", " << &pbih -> biCompression << "\n"
+         << "biSizeImage: " << pbih -> biSizeImage << ", " << &pbih -> biSizeImage << "\n"
+         << "biXPelsPerMeter: " << pbih -> biXPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+         << "biYPelsPerMeter: " << pbih -> biYPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+         << "biClrUsed: " << pbih -> biClrUsed << ", " << &pbih -> biClrUsed << "\n"
+         << "biClrImportant: " << pbih -> biClrImportant << ", " << &pbih -> biClrImportant << "\n"
          << std::endl;
 
   if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
@@ -1169,14 +1187,14 @@ int Decodebitmap(const std::string &fileName) {
   };
   // Allocate buffer and read file.
   fseek(f,0,SEEK_END);
-  size=ftell(f)-sizeof(BITMAPFILEHEADER);
+  size=ftell(f)-sizeof(OverlayBitmapFileHeader);
   data=(uchar *)malloc(size);
   if (data==NULL) {                    // Unable to allocate memory
     Reporterror("Low memory");
     fclose(f); 
     return -1; 
   };
-  fseek(f,sizeof(BITMAPFILEHEADER),SEEK_SET);
+  fseek(f,sizeof(OverlayBitmapFileHeader),SEEK_SET);
   i=fread(data,1,size,f);
   fclose(f);
   if (i!=size) {                       // Unable to read bitmap
@@ -1187,7 +1205,10 @@ int Decodebitmap(const std::string &fileName) {
     return -1; 
   };
   // Process bitmap.
-  ProcessDIB(data,pbfh->bfOffBits-sizeof(BITMAPFILEHEADER));
+  if ( ! ProcessDIB(data,pbfh->bfOffBits-sizeof(OverlayBitmapFileHeader))) {
+    std::cerr << "Error: Processing the DIB has failed" << std::endl;
+    return -1;
+  }
   free(data);
   return 0;
 };
@@ -1213,7 +1234,8 @@ int ProcessDIB(void *hdata,int offset) {
     pdib->bmiHeader.biHeight<128 || pdib->bmiHeader.biHeight>32768
   ) {
     //GlobalUnlock(hdata);
-    return -1; };                      // Not a known bitmap!
+    return -1;
+  };                      // Not a known bitmap!
   sizex=pdib->bmiHeader.biWidth;
   sizey=pdib->bmiHeader.biHeight;
   ncolor=pdib->bmiHeader.biClrUsed;

@@ -75,10 +75,10 @@ extern t_procdata procdata;            // Descriptor of processed data
 
 //void   Nextdataprocessingstep(t_procdata *pdata);
 int    Decodebitmap(const std::string &fileName);
-void   Getgridposition(t_procdata *pdata);
-void   Getgridintensity(t_procdata *pdata);
-void   Getxangle(t_procdata *pdata);
-void   Getyangle(t_procdata *pdata);
+int    Getgridposition(t_procdata *pdata);
+int    Getgridintensity(t_procdata *pdata);
+int    Getxangle(t_procdata *pdata);
+int    Getyangle(t_procdata *pdata);
 void   Preparefordecoding(t_procdata *pdata);
 void   Decodenextblock(t_procdata *pdata);
 void   Finishdecoding(t_procdata *pdata);
