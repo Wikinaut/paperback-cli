@@ -1045,6 +1045,7 @@ int Decodebitmap(const std::string &fileName) {
   FILE *f;
   BITMAPFILEHEADER *pbfh;
   BITMAPINFOHEADER *pbih;
+
   //HCURSOR prevcursor; //GUI
   // Ask for file name.
   //!!! REQUIRE input bmp exists before this can be run
@@ -1084,6 +1085,27 @@ int Decodebitmap(const std::string &fileName) {
   pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
   std::cout << "Size of bmp file header: " << sizeof(*pbfh) << std::endl;
   std::cout << "Size of bmp info header: " << sizeof(*pbih) << std::endl;
+
+    std::cout //<< pbfh << "\n"
+         << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"
+         << pbfh -> bfSize << ", " << &pbfh -> bfSize <<"\n"
+         << pbfh -> bfReserved1 << ", " << &pbfh -> bfReserved1 <<"\n"
+         << pbfh -> bfReserved2 << ", " << &pbfh -> bfReserved2 <<"\n"
+         << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
+         << std::endl;
+    std::cout //<< pbih << "\n"
+         << pbih -> biSize << ", " << &pbih -> biSize << "\n"
+         << pbih -> biWidth << ", " << &pbih -> biWidth << "\n"
+         << pbih -> biHeight << ", " << &pbih -> biHeight << "\n"
+         << pbih -> biPlanes << ", " << &pbih -> biPlanes << "\n"
+         << pbih -> biBitCount << ", " << &pbih -> biBitCount << "\n"
+         << pbih -> biCompression << ", " << &pbih -> biCompression << "\n"
+         << pbih -> biSizeImage << ", " << &pbih -> biSizeImage << "\n"
+         << pbih -> biXPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+         << pbih -> biClrUsed << ", " << &pbih -> biClrUsed << "\n"
+         << pbih -> biClrImportant << ", " << &pbih -> biClrImportant << "\n"
+         << std::endl;
+
   if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
     std::ostringstream oss;
     oss << "Input file is not a bitmap: " << fileName << std::endl;
