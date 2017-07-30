@@ -1081,10 +1081,30 @@ int Decodebitmap(const std::string &fileName) {
     fclose(f); 
     return -1; 
   };
+#ifdef _WIN32
   pbfh=(BITMAPFILEHEADER *)buf;
   pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
-  std::cout << "Size of bmp file header: " << sizeof(*pbfh) << std::endl;
-  std::cout << "Size of bmp info header: " << sizeof(*pbih) << std::endl;
+#elif __linux__
+  //Padding different in GCC, cannot overlay directly
+  //Use smaller types and bitwise ops to get the data
+  OverlayBitmapFileHeader *temp;
+  temp=(OverlayBitmapFileHeader *)buf;
+
+  pbfh = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
+  pbfh->bfType       = temp->bfType;
+  pbfh->bfSize       = temp->bfSize3 << 24;
+  pbfh->bfSize      |= temp->bfSize2 << 16;
+  pbfh->bfSize      |= temp->bfSize1 << 8;
+  pbfh->bfSize      |= temp->bfSize0;
+  pbfh->bfReserved1  = temp->bfReserved1;
+  pbfh->bfReserved2  = temp->bfReserved2;
+  pbfh->bfOffBits    = temp->bfOffBits3 << 24;
+  pbfh->bfOffBits   |= temp->bfOffBits2 << 16;
+  pbfh->bfOffBits   |= temp->bfOffBits1 << 8;
+  pbfh->bfOffBits   |= temp->bfOffBits0;
+  
+  pbih=(BITMAPINFOHEADER *)(buf+sizeof(OverlayBitmapFileHeader));
+#endif
 
     std::cout //<< pbfh << "\n"
          << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"

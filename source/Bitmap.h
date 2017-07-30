@@ -20,13 +20,33 @@
 
 #include <cstdint>
 
-#define BI_RGB 16 //bitmap value for uncompressed color data
+#define BI_RGB 0 //bitmap value for uncompressed color data
+#define CHAR_BM 19778
 
 
 
+//Padding specific to compiler - must account for padded bfType
+// and little-endian order when overlaying struct on buffer
+typedef struct OverlayBitmapFileHeader {
+  uint16_t bfType = CHAR_BM;  //filetype, must be 'BM'
+  uint8_t bfSize0;
+  uint8_t     bfSize1;
+
+  uint8_t     bfSize2;
+  uint8_t     bfSize3;
+  uint16_t bfReserved1 = 0;
+  
+  uint16_t bfReserved2 = 0;
+  uint8_t     bfOffBits0;
+  uint8_t     bfOffBits1;
+
+  uint8_t     bfOffBits2;
+  uint8_t     bfOffBits3;
+  
+} OverlayBitmapFileHeader;
 
 typedef struct BITMAPFILEHEADER {
-  uint16_t bfType = 19778;  //filetype, must be 'BM' (19778)
+  uint16_t bfType = CHAR_BM;//filetype, must be 'BM'
   uint32_t bfSize;          //size in bytes of bitmap file 
   uint16_t bfReserved1 = 0; //unused, except to keep alignment
   uint16_t bfReserved2 = 0; //unused, except to keep alignment
