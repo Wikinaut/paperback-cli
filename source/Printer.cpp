@@ -46,7 +46,8 @@ t_printdata printdata;          // extern
 void  Printfile(const std::string &path, const std::string &bmp)
 {
   // Prepare descriptor.
-  memset(&printdata,0,sizeof(printdata));
+  // memset(&printdata,0,sizeof(printdata));
+  t_printdata printdata = {};
   printdata.infile = path;
   if ( ! bmp.empty() )
     printdata.outbmp = bmp;
