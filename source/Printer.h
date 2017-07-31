@@ -94,7 +94,7 @@ typedef struct t_printdata {           // Print control structure
 extern int       resx,resy;            // Printer resolution, dpi (may be 0!)
 extern t_printdata printdata;          // Print control structure
 
-void   Printfile(const std::string &path, const std::string &bmp);
+t_printdata   Printfile(const std::string &path, const std::string &bmp);
 void   Preparefiletoprint(t_printdata *print);
 int    Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight);
 void   Stopprinting(t_printdata *print);

@@ -43,19 +43,21 @@ t_printdata printdata;          // extern
 
 
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
-void  Printfile(const std::string &path, const std::string &bmp)
+t_printdata Printfile(const std::string &path, const std::string &bmp)
 {
   // Prepare descriptor.
   // memset(&printdata,0,sizeof(printdata));
   t_printdata printdata = {};
   printdata.infile = path;
   std::cout << "bmp: " << bmp << " and length: " << bmp.length() << std::endl;
-  if ( bmp.length() > 0 )
+  if ( bmp.length() > 0 ) {
     printdata.outbmp = bmp;
+  }
   std::cout << "outbmp: " << printdata.outbmp << std::endl;
   // Start printing.
   printdata.step=1;
   //  Updatebuttons();
+  return printdata;
 };
 
 
@@ -262,7 +264,6 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   // Note that name in superdata may be not null-terminated.
   strncpy(print->superdata.name,fil,32); // don't overwrite the salt and iv at the end of this buffer
   print->superdata.name[31] = '\0'; // ensure that later string operations don't overflow into binary data
-
 
   // If printing to paper, ask user to select printer and, if necessary, adjust
   // parameters. I do not enforce high quality or high resolution - the user is
