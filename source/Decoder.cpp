@@ -253,7 +253,8 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
           // Report success.
           if ((pdata->mode & M_BEST)==0) {
             lastgood=q;
-            return answer; }
+            return answer; 
+          }
           else if (answer<bestanswer) {
             bestanswer=answer;
             bestresult=*result;
@@ -730,14 +731,22 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
       bufy[j]+=*psrc;
     };
   };
-  if (Findpeaks(bufx,dx,&xpeak,&xstep)<=0.0)
+  if (Findpeaks(bufx,dx,&xpeak,&xstep)<=0.0) { 
+    std::cerr << "No X grid found" << std::endl;
     return -1;                         // No X grid
-  if (fabs(xstep-pdata->xstep)>pdata->xstep/16.0)
+  }
+  if (fabs(xstep-pdata->xstep)>pdata->xstep/16.0) {
+    std::cerr << "Invalid grid step" << std::endl;
     return -1;                         // Invalid grid step
-  if (Findpeaks(bufy,dy,&ypeak,&ystep)<=0.0)
+  }
+  if (Findpeaks(bufy,dy,&ypeak,&ystep)<=0.0) {
+    std::cerr << "No Y grid found" << std::endl;
     return -1;                         // No Y grid
-  if (fabs(ystep-pdata->ystep)>pdata->ystep/16.0)
+  }
+  if (fabs(ystep-pdata->ystep)>pdata->ystep/16.0) {
+    std::cerr << "Invalid grid step" << std::endl;
     return -1;                         // Invalid grid step
+  }
   // Save block position for displaying purposes.
   pdata->blockxpeak=xpeak;
   pdata->blockxstep=xstep;
@@ -940,10 +949,14 @@ finish:
 // to Preparefordecoding().
 void Finishdecoding(t_procdata *pdata) {
   std::cout << "Finished decoding bitmap" << std::endl;
+  std::cout << "  # superblocks: " << pdata->nsuper << std::endl;
+  std::cout << "  # good blocks: " << pdata->ngood << std::endl;
+  std::cout << "  # bad blocks: " << pdata->nbad << std::endl;
+  std::cout << "  # restored blocks: " << pdata->nrestored << std::endl;
   int i,fileindex;
   // Pass gathered data to file processor.
   if (pdata->superblock.addr==0)
-    Reporterror("Superblock address is not readable, failed to write decoded data to file");
+    Reporterror("Header data was not found in bitmap, failed to write decoded data to file");
   else {
     fileindex=Startnextpage(&pdata->superblock);
     if (fileindex>=0) {
