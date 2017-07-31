@@ -164,7 +164,10 @@ int main(int argc, char ** argv) {
       t_printdata printdata = Printfile( infile, outfile );
       // Get more attributes
       // Opens buffer for arbitrary data
-      Preparefiletoprint( &printdata );
+      if (Preparefiletoprint( &printdata )) {
+          cerr << "Could not prepare file for printing" << endl;
+          return -1;
+      }
       //Get more attributes
       // Construct superblock
       if ( Initializeprinting( &printdata, WIDTH_A4, HEIGHT_A4 ) == 0 ) {
