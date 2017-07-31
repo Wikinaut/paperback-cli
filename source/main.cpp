@@ -23,6 +23,7 @@
 #include "Decoder.h"
 #include "Global.h"
 #include "Printer.h"
+#include "Fileproc.h"
 
 using namespace std;
 
@@ -180,22 +181,25 @@ int main(int argc, char ** argv) {
     else {
       // Process 1 or more bitmaps
       //!!! add loop after a single page decodes successfully
+      
       // Get attributes of the inputted bitmap
-      if ( Decodebitmap(infile.c_str())    == 0 
-           && Getgridposition(&procdata)   == 0 
-           && Getgridintensity(&procdata)  == 0 
-           && Getxangle(&procdata)         == 0 
-           && Getyangle(&procdata)         == 0 
+      if ( Decodebitmap(infile.c_str())             == 0 
+           && Getgridposition(&procdata)            == 0 
+           && Getgridintensity(&procdata)           == 0 
+           && Getxangle(&procdata)                  == 0 
+           && Getyangle(&procdata)                  == 0 
         ) {
         // Set internal options and allocate memory for decoding
         Preparefordecoding(&procdata);
-        // Decode block by block until step is set to 0
-        int currStep = procdata.step;
-        while ( procdata.step == currStep ) {
-          Decodenextblock(&procdata);
+        if ( Startnextpage(&(procdata.superblock)) == 0 ) {
+          // Decode block by block until step is set to 0
+          int currStep = procdata.step;
+          while ( procdata.step == currStep ) {
+            Decodenextblock(&procdata);
+          }
+          // Passes converted data to File Processor and frees recources
+          Finishdecoding(&procdata);
         }
-        // Passes converted data to File Processor and frees recources
-        Finishdecoding(&procdata);
       }
     }
 

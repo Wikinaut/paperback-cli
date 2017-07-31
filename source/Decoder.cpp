@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 #include <math.h>
 #include <stdio.h>
 #include <sstream>
@@ -889,6 +890,7 @@ void Decodenextblock(t_procdata *pdata) {
     // Error, block is unreadable.
     pdata->nbad++; }
   else if (result.addr==SUPERBLOCK) {
+    std::cout << "Superblock located and decoded" << std::endl;
     // Superblock.
     pdata->superblock.addr=SUPERBLOCK;
     pdata->superblock.datasize=((t_superdata *)&result)->datasize;
