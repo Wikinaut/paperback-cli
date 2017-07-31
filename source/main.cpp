@@ -161,12 +161,10 @@ int main(int argc, char ** argv) {
       // allocate memory for printdata
       // sets printdata.infile and printdata.outbmp
       // if second arg is not NULL, writes a bmp to outfile
-      Printfile( infile, outfile );
-      
+      t_printdata printdata = Printfile( infile, outfile );
       // Get more attributes
       // Opens buffer for arbitrary data
       Preparefiletoprint( &printdata );
-
       //Get more attributes
       // Construct superblock
       if ( Initializeprinting( &printdata, WIDTH_A4, HEIGHT_A4 ) == 0 ) {
