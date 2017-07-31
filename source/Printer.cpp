@@ -49,8 +49,10 @@ void  Printfile(const std::string &path, const std::string &bmp)
   // memset(&printdata,0,sizeof(printdata));
   t_printdata printdata = {};
   printdata.infile = path;
-  if ( ! bmp.empty() )
+  std::cout << "bmp: " << bmp << " and length: " << bmp.length() << std::endl;
+  if ( bmp.length() > 0 )
     printdata.outbmp = bmp;
+  std::cout << "outbmp: " << printdata.outbmp << std::endl;
   // Start printing.
   printdata.step=1;
   //  Updatebuttons();
@@ -174,7 +176,7 @@ void Preparefiletoprint(t_printdata *print) {
   std::cout << "print->infile: " << print->infile << std::endl;
   std::cout << "superblock addr: " << &print->superdata << std::endl;
   // Get file attributes
-  if ( stat(print->infile.c_str(), &(print->attributes)) < 0 ) {
+  if ( stat(print->infile.c_str(), &(print->attributes)) != 0 ) {
     Reporterror("Unable to get input file attributes");
     Stopprinting(print);
     return;
@@ -402,7 +404,7 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
 //        print->bordertop=pagesetup.rtMargin.top*print->ppiy/2540;
 //        print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; 
 //    } else {
-    print->borderleft=print->ppix; 
+    print->borderleft=print->ppix/2; 
     print->borderright=print->ppix/2;
     print->bordertop=print->ppiy/2;
     print->borderbottom=print->ppiy/2; 
@@ -422,7 +424,7 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   // Calculate width of the border around the data grid.
   if (print->printborder)
     print->border=dx*16;
-  else if (print->outbmp[0]!='\0')
+  else if ( print->outbmp.length() > 0 )
     print->border=25;
   else
     print->border=0;
@@ -483,8 +485,8 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
     pbmi->bmiColors[i].rgbReserved=0; };
   // Create bitmap. Direct drawing is faster than tens of thousands of API
   // calls.
-  if (print->outbmp[0]=='\0') {
-    Reporterror("Outfile unspecified, can not create BMP");
+  if ( print->outbmp.empty() ) {
+    Reporterror("Outbmp unspecified, can not create BMP");
     Stopprinting(print);
     return -1;
   }
@@ -639,7 +641,7 @@ void Printnextpage(t_printdata *print) {
   pagesize=print->pagesize;
   redundancy=print->redundancy;
   black=print->black;
-  if (print->outbmp[0]=='\0')
+  if (print->outbmp.empty() )
     bits=print->dibbits;
   else
     bits=print->drawbits;
@@ -760,91 +762,91 @@ void Printnextpage(t_printdata *print) {
     for (k=(nstring+1)*(redundancy+1); k<nx*ny; k++) {
       Drawblock(k,(t_data *)&print->superdata,
           bits,width,height,border,nx,ny,dx,dy,px,py,black); };
-    // When printing to paper, print title at the top of the page and info text
-    // at the bottom.
-    if (print->outbmp[0]=='\0') {
-      if (print->printheader) {
-        // Print title at the top of the page.
-      #ifdef _WIN32
-        Filetimetotext(&print->modified,ts,sizeof(ts));
-      #elif __linux
-        struct tm * timeinfo;
-        timeinfo = localtime (&print->modified); 
+    // Print title at the top of the page and info text at the bottom.
+    if (print->printheader) {
+      // Print title at the top of the page.
+#ifdef _WIN32
+      Filetimetotext(&print->modified,ts,sizeof(ts));
+#elif __linux
+      struct tm * timeinfo;
+      timeinfo = localtime (&print->modified); 
       strftime(ts, strlen(ts), "%D %l:%M %p", timeinfo);
       if(ts[0] == '0') {
         memmove(ts, ts+1, strlen(ts));
       }
-      #endif
+#endif
 
       n=sprintf(s,"%.64s [%s, %i bytes] - page %i of %i",
-        print->superdata.name,ts,print->origsize,print->frompage+1,npages);
+          print->superdata.name,ts,print->origsize,print->frompage+1,npages);
       //SelectObject(print->dc,print->hfont6); //!!! bitmap output instead of printing
       //TextOut(print->dc,print->borderleft+width/2,print->bordertop,s,n);
       // Print info at the bottom of the page.
       n=sprintf(s,"Recommended scanner resolution %i dots per inch",
-        max(print->ppix*3/dx,print->ppiy*3/dy));
+          max(print->ppix*3/dx,print->ppiy*3/dy));
       //SelectObject(print->dc,print->hfont10); //!!! bitmap output instead of printing
       //TextOut(print->dc,
       //  print->borderleft+width/2,
       //  print->bordertop+print->extratop+height+print->ppiy/24,s,n);
       ;
     };
+
     // Transfer bitmap to paper and send page to printer.
     //SetDIBitsToDevice(print->dc,
     //  print->borderleft,print->bordertop+print->extratop,
     //  width,height,0,0,0,height,bits,
     //  (BITMAPINFO *)print->bmi,DIB_RGB_COLORS);
     //  EndPage(print->dc);
+
+    // Save bitmap to file. First, get file name.
+    //     fnsplit(print->outbmp,drv,dir,nam,ext);
+    //       if (ext[0]=='\0') strcpy(ext,".bmp");
+    //       if (npages>1)
+    //       sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,print->frompage+1,ext);
+    //       else
+    //       sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
+
+    cout << print->outbmp << "#" << (print->frompage)+1;
+    FILE *f = fopen( print->outbmp.c_str(), "wb");
+    if (f == NULL) {
+      Reporterror("Can not open file for writing");
+      Stopprinting(print);
+      return;
     }
-    else {
-      // Save bitmap to file. First, get file name.
-      //     fnsplit(print->outbmp,drv,dir,nam,ext);
-      //       if (ext[0]=='\0') strcpy(ext,".bmp");
-      //       if (npages>1)
-      //       sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,print->frompage+1,ext);
-      //       else
-      //       sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
 
-      cout << print->outbmp << "#" << (print->frompage)+1;
-      FILE *f = fopen( print->outbmp.c_str(), "wb");
-      if (f == NULL) {
-        Reporterror("Can not open file for writing");
-        Stopprinting(print);
-        return;
-      }
-
-      // Create and save bitmap file header.
-      success=1;
-      n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
-      bmfh.bfType=19778; //First two bytes are 'BM' (19778)
-      bmfh.bfSize=sizeof(bmfh)+n+width*height;
-      bmfh.bfReserved1=bmfh.bfReserved2=0;
-      bmfh.bfOffBits=sizeof(bmfh)+n;
-      u = fwrite(&bmfh, sizeof(char), sizeof(bmfh), f);
-      if (u != sizeof(bmfh))
-        success=0;
-      // Update and save bitmap info header and palette.
-      if (success) {
-        pbmi=(BITMAPINFO *)print->bmi;
-        pbmi->bmiHeader.biWidth=width;
-        pbmi->bmiHeader.biHeight=height;
-        pbmi->bmiHeader.biXPelsPerMeter=(print->ppix*10000)/254;
-        pbmi->bmiHeader.biYPelsPerMeter=(print->ppiy*10000)/254;
-        if (fwrite(pbmi, sizeof(char), n, f) > 0 || u!=(ulong)n) success=0; };
-      // Save bitmap data.
-      if (success) {
-        u = fwrite(bits, sizeof(char), width*height, f);
-        if (u != (ulong)(width*height))
-          success=0;
-        ;  
-      };
-      fclose(f);
-      if (success==0) {
-        Reporterror("Unable to save bitmap");
-        Stopprinting(print);
-        return;
-      };
+    // Create and save bitmap file header.
+    success=1;
+    n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
+    bmfh.bfType=19778; //First two bytes are 'BM' (19778)
+    bmfh.bfSize=sizeof(bmfh)+n+width*height;
+    bmfh.bfReserved1=bmfh.bfReserved2=0;
+    bmfh.bfOffBits=sizeof(bmfh)+n;
+    u = fwrite(&bmfh, sizeof(char), sizeof(bmfh), f);
+    if (u != sizeof(bmfh))
+      success=0;
+    // Update and save bitmap info header and palette.
+    if (success) {
+      pbmi=(BITMAPINFO *)print->bmi;
+      pbmi->bmiHeader.biWidth=width;
+      pbmi->bmiHeader.biHeight=height;
+      pbmi->bmiHeader.biXPelsPerMeter=(print->ppix*10000)/254;
+      pbmi->bmiHeader.biYPelsPerMeter=(print->ppiy*10000)/254;
+      if (fwrite(pbmi, sizeof(char), n, f) > 0 || u!=(ulong)n) 
+        success=0; 
     };
+    // Save bitmap data.
+    if (success) {
+      u = fwrite(bits, sizeof(char), width*height, f);
+      if (u != (ulong)(width*height))
+        success=0;
+      ;  
+    };
+    fclose(f);
+    if (success==0) {
+      Reporterror("Unable to save bitmap");
+      Stopprinting(print);
+      return;
+    };
+
     // Page printed, proceed with next.
     print->frompage++;
 };
