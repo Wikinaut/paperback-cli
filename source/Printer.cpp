@@ -26,6 +26,10 @@
 #include "Crc16.h"
 #include "Ecc.h"
 
+#ifdef _WIN32
+#define OverlayBitmapFileHeader BITMAPFILEHEADER
+#endif
+
 
 // command line program is stripped down to only
 // output bitmap files thus a lot of printer functions are unnecessary
@@ -620,7 +624,7 @@ void Printnextpage(t_printdata *print) {
   uchar *bits;
   ulong u,size,pagesize,offset;
   t_data block,cksum;
-  BITMAPFILEHEADER bmfh;
+  OverlayBitmapFileHeader bmfh;
   BITMAPINFO *pbmi;
   // Calculate offset of this page in data.
   offset=print->frompage*print->pagesize;
@@ -811,7 +815,6 @@ void Printnextpage(t_printdata *print) {
     //       else
     //       sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
 
-    cout << print->outbmp << "#" << (print->frompage)+1;
     FILE *f = fopen( print->outbmp.c_str(), "wb");
     if (f == NULL) {
       Reporterror("Can not open file for writing");
@@ -823,9 +826,23 @@ void Printnextpage(t_printdata *print) {
     success=1;
     n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
     bmfh.bfType=19778; //First two bytes are 'BM' (19778)
-    bmfh.bfSize=sizeof(bmfh)+n+width*height;
     bmfh.bfReserved1=bmfh.bfReserved2=0;
-    bmfh.bfOffBits=sizeof(bmfh)+n;
+
+    uint bitmapSize = sizeof(bmfh)+n+width*height;
+    uint offsetBits = sizeof(bmfh)+n;
+#ifdef _WIN32
+    bmfh.bfSize = bitmapSize;
+    bmfh.bfOffBits = offsetBits;
+#elif __linux__
+    bmfh.bfSize0  = bitmapSize;
+    bmfh.bfSize1 |= bitmapSize >> 8;
+    bmfh.bfSize2 |= bitmapSize >> 16;
+    bmfh.bfSize3 |= bitmapSize >> 24;
+    bmfh.bfOffBits0  = offsetBits;
+    bmfh.bfOffBits1 |= offsetBits >> 8;
+    bmfh.bfOffBits2 |= offsetBits >> 16;
+    bmfh.bfOffBits3 |= offsetBits >> 24;
+#endif
     u = fwrite(&bmfh, sizeof(char), sizeof(bmfh), f);
     if (u != sizeof(bmfh))
       success=0;
@@ -836,8 +853,9 @@ void Printnextpage(t_printdata *print) {
       pbmi->bmiHeader.biHeight=height;
       pbmi->bmiHeader.biXPelsPerMeter=(print->ppix*10000)/254;
       pbmi->bmiHeader.biYPelsPerMeter=(print->ppiy*10000)/254;
-      if (fwrite(pbmi, sizeof(char), n, f) > 0 || u!=(ulong)n) 
+      if ((fwrite(pbmi, sizeof(char), n, f) == 0)  || (u!=(ulong)n))  {
         success=0; 
+      }
     };
     // Save bitmap data.
     if (success) {
