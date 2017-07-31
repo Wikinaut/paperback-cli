@@ -27,8 +27,8 @@
 #endif
 
 #define PACKLEN        65536           // Length of data read buffer 64 K
-#define HEIGHT_A4      297             // In millimeters
-#define WIDTH_A4       210             // In millimeters
+#define HEIGHT_A4      11.7            // Printable area in inches
+#define WIDTH_A4       8.3             // Printable area in inches
 
 
 

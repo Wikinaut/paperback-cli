@@ -170,7 +170,8 @@ int main(int argc, char ** argv) {
       if ( Initializeprinting( &printdata, WIDTH_A4, HEIGHT_A4 ) == 0 ) {
         //Create BMPs until all data has been written to BMP
         int bmpNo = 1;
-        while ( printdata.step != 0 ) {
+        int currStep = printdata.step;
+        while ( printdata.step == currStep ) {
           cout << "Creating BMP #" << bmpNo << " " << outfile << endl;
           Printnextpage( &printdata );
           ++bmpNo;

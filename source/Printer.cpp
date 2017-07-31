@@ -49,11 +49,9 @@ t_printdata Printfile(const std::string &path, const std::string &bmp)
   // memset(&printdata,0,sizeof(printdata));
   t_printdata printdata = {};
   printdata.infile = path;
-  std::cout << "bmp: " << bmp << " and length: " << bmp.length() << std::endl;
   if ( bmp.length() > 0 ) {
     printdata.outbmp = bmp;
   }
-  std::cout << "outbmp: " << printdata.outbmp << std::endl;
   // Start printing.
   printdata.step=1;
   //  Updatebuttons();
@@ -175,8 +173,6 @@ void Preparefiletoprint(t_printdata *print) {
   };
 #elif __linux
   //!!!TEST struct mem allocation
-  std::cout << "print->infile: " << print->infile << std::endl;
-  std::cout << "superblock addr: " << &print->superdata << std::endl;
   // Get file attributes
   if ( stat(print->infile.c_str(), &(print->attributes)) != 0 ) {
     Reporterror("Unable to get input file attributes");
@@ -231,9 +227,8 @@ void Preparefiletoprint(t_printdata *print) {
 };
 
 int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
-  std::cout << &printdata << std::endl;
   int i,dx,dy,px,py,width,height,success,rastercaps;
-  long nx, ny;
+  long nx, ny; // Number of blocks in each row and column
   char fil[MAXPATH],nam[MAXFILE],ext[MAXEXT],jobname[TEXTLEN];
   BITMAPINFO *pbmi;
   //SIZE extent;
@@ -404,17 +399,18 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
 //        print->borderright=pagesetup.rtMargin.right*print->ppix/2540;
 //        print->bordertop=pagesetup.rtMargin.top*print->ppiy/2540;
 //        print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; 
-//    } else {
-    print->borderleft=print->ppix/2; 
-    print->borderright=print->ppix/2;
-    print->bordertop=print->ppiy/2;
-    print->borderbottom=print->ppiy/2; 
+//    } else {  
+      print->borderleft=print->ppix/2; 
+      print->borderright=print->ppix/2;
+      print->bordertop=print->ppiy/2;
+      print->borderbottom=print->ppiy/2; 
 //    } 
 
 
   // Calculate size of printable area, in the pixels of printer's resolution.
-  width  = pageWidth  - print->borderleft+print->borderright;
-  height = pageHeight - print->bordertop+print->borderbottom+print->extratop+print->extrabottom;
+  // Truncation of pageWidth * ppix and pageHeight * ppiy is INTENDED behavior
+  width  = pageWidth * print->ppix  - print->borderleft+print->borderright;
+  height = pageHeight * print->ppiy - print->bordertop+print->borderbottom+print->extratop+print->extrabottom;
   // Calculate data point raster (dx,dy) and size of the point (px,py) in the
   // pixels of printer's resolution. Note that pixels, at least in theory, may
   // be non-rectangular.
