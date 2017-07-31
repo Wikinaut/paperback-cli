@@ -203,7 +203,7 @@ void Preparefiletoprint(t_printdata *print) {
   print->bufsize=(print->origsize+15) & 0xFFFFFFF0;
   print->buf=(uchar *)malloc(print->bufsize);
   if (print->buf==NULL) {
-    Reporterror("Low memory");
+    Reporterror("Not enough memory for output file");
     Stopprinting(print);
     return; 
   };
@@ -211,7 +211,7 @@ void Preparefiletoprint(t_printdata *print) {
   // pack data in pieces of PACKLEN bytes.
   print->readbuf=(uchar *)malloc(PACKLEN);
   if (print->readbuf==NULL) {
-    Reporterror("Low memory");
+    Reporterror("Not enough memory for read buffer");
     Stopprinting(print);
     return; 
   };
@@ -225,9 +225,10 @@ void Preparefiletoprint(t_printdata *print) {
   print->step++;
 };
 
-void Initializeprinting(t_printdata *print) {
+int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   std::cout << &printdata << std::endl;
-  int i,dx,dy,px,py,nx,ny,width,height,success,rastercaps;
+  int i,dx,dy,px,py,width,height,success,rastercaps;
+  long nx, ny;
   char fil[MAXPATH],nam[MAXFILE],ext[MAXEXT],jobname[TEXTLEN];
   BITMAPINFO *pbmi;
   //SIZE extent;
@@ -408,10 +409,8 @@ void Initializeprinting(t_printdata *print) {
 
 
   // Calculate size of printable area, in the pixels of printer's resolution.
-  width-=
-    print->borderleft+print->borderright;
-  height-=
-    print->bordertop+print->borderbottom+print->extratop+print->extrabottom;
+  width  = pageWidth  - print->borderleft+print->borderright;
+  height = pageHeight - print->bordertop+print->borderbottom+print->extratop+print->extrabottom;
   // Calculate data point raster (dx,dy) and size of the point (px,py) in the
   // pixels of printer's resolution. Note that pixels, at least in theory, may
   // be non-rectangular.
@@ -448,10 +447,16 @@ void Initializeprinting(t_printdata *print) {
   std::cout << "NDOT: " << NDOT << std::endl;
   std::cout << "dx: " << dx <<std::endl;
   std::cout << "dy: " << dy << std::endl;
+  long multResult = nx*ny;
+  if ( nx > 0 && ny > 0 && multResult < 0 ) {
+    std::cerr << "Input file is too large to back up.  Please break the file apart" << std::endl;
+    return -1;
+  }
   if (nx<print->redundancy+1 || ny<3 || nx*ny<2*print->redundancy+2) {
     Reporterror("Printable area is too small, reduce borders or block size");
     Stopprinting(print);
-    return; };
+    return -1; 
+  };
   // Calculate final size of the bitmap where I will draw the image.
   width=(nx*(NDOT+3)*dx+px+2*print->border+3) & 0xFFFFFFFC;
   height=ny*(NDOT+3)*dy+py+2*print->border;
@@ -480,20 +485,20 @@ void Initializeprinting(t_printdata *print) {
   if (print->outbmp[0]=='\0') {
     Reporterror("Outfile unspecified, can not create BMP");
     Stopprinting(print);
-    return;
+    return -1;
   }
   else {                               // Save to bitmap
     print->drawbits=(uchar *)malloc(width*height);
     if (print->drawbits==NULL) {
       Reporterror("Low memory, can't create bitmap");
-      return;
+      return -1;
     };
   };
   // Calculate the total size of useful data, bytes, that fits onto the page.
   // For each redundancy blocks, I create one recovery block. For each chain, I
   // create one superblock that contains file name and size, plus at least one
   // superblock at the end of the page.
-  print->pagesize=((nx*ny-print->redundancy-2)/(print->redundancy+1))*
+  print->pagesize=((multResult-print->redundancy-2)/(print->redundancy+1))*
     print->redundancy*NDATA;
   print->superdata.pagesize=print->pagesize;
   // Save calculated parameters.

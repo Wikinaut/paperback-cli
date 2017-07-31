@@ -169,13 +169,14 @@ int main(int argc, char ** argv) {
 
       //Get more attributes
       // Construct superblock
-      Initializeprinting( &printdata );
-      //Create BMPs until all data has been written to BMP
-      int bmpNo = 1;
-      while ( printdata.step != 0 ) {
-        cout << "Creating BMP #" << bmpNo << " " << outfile << endl;
-        Printnextpage( &printdata );
-        ++bmpNo;
+      if ( Initializeprinting( &printdata, WIDTH_A4, HEIGHT_A4 ) == 0 ) {
+        //Create BMPs until all data has been written to BMP
+        int bmpNo = 1;
+        while ( printdata.step != 0 ) {
+          cout << "Creating BMP #" << bmpNo << " " << outfile << endl;
+          Printnextpage( &printdata );
+          ++bmpNo;
+        }
       }
     }
     else {

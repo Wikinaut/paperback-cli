@@ -27,6 +27,8 @@
 #endif
 
 #define PACKLEN        65536           // Length of data read buffer 64 K
+#define HEIGHT_A4      297             // In millimeters
+#define WIDTH_A4       210             // In millimeters
 
 
 
@@ -94,7 +96,7 @@ extern t_printdata printdata;          // Print control structure
 
 void   Printfile(const std::string &path, const std::string &bmp);
 void   Preparefiletoprint(t_printdata *print);
-void   Initializeprinting(t_printdata *print);
+int    Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight);
 void   Stopprinting(t_printdata *print);
 void   Printnextpage(t_printdata *print);
 static void   Drawblock(int index,t_data *block,uchar *bits,int width,int height,
