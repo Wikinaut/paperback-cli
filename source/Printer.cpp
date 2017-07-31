@@ -142,8 +142,8 @@ static void Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
 
 
 // Opens input file and allocates memory buffers.
-void Preparefiletoprint(t_printdata *print) {
-  ulong l;
+int Preparefiletoprint(t_printdata *print) {
+  ulong l=0;
 #ifdef _WIN32
   FILETIME created, accessed, modified;
   // Get file attributes.
@@ -156,7 +156,7 @@ void Preparefiletoprint(t_printdata *print) {
   if (print->hfile==INVALID_HANDLE_VALUE) {
     Reporterror("Unable to open file");
     Stopprinting(print);
-    return; 
+    return -1; 
   };
   // Get time of last file modification.
   GetFileTime(print->hfile,&created,&accessed,&modified);
@@ -166,10 +166,14 @@ void Preparefiletoprint(t_printdata *print) {
     print->modified=modified;
   // Get original (uncompressed) file size.
   print->origsize=GetFileSize(print->hfile, (LPDWORD)&l);
-  if (print->origsize==0 || print->origsize>MAXSIZE || l!=0) {
+  if (print->origsize == 0 
+      || print -> origsize == INVALID_FILE_SIZE 
+      || print->origsize>MAXSIZE 
+      || l!=0) {
+      std::cout << print -> origsize << "," << l << "," << std::endl;
     Reporterror("Invalid file size");
     Stopprinting(print);
-    return; 
+    return -1; 
   };
 #elif __linux
   //!!!TEST struct mem allocation
@@ -177,14 +181,14 @@ void Preparefiletoprint(t_printdata *print) {
   if ( stat(print->infile.c_str(), &(print->attributes)) != 0 ) {
     Reporterror("Unable to get input file attributes");
     Stopprinting(print);
-    return;
+    return -1;
   }
   // Open input file.
   print->hfile = fopen( print->infile.c_str(), "rb" );
   if (print->hfile == NULL) {
     Reporterror("Unable to open file");
     Stopprinting(print);
-    return; 
+    return -1; 
   }
   // Get time of last file modification.
   print->modified = print->attributes.st_mtime;
@@ -193,7 +197,7 @@ void Preparefiletoprint(t_printdata *print) {
   if (print->origsize==0 || print->origsize>MAXSIZE) {
     Reporterror("Invalid file size");
     Stopprinting(print);
-    return;
+    return -1;
   }
 #endif
   print->readsize=0;
@@ -206,7 +210,7 @@ void Preparefiletoprint(t_printdata *print) {
   if (print->buf==NULL) {
     Reporterror("Not enough memory for output file");
     Stopprinting(print);
-    return; 
+    return -1; 
   };
   // Allocate read buffer. Because compression may take significant time, I
   // pack data in pieces of PACKLEN bytes.
@@ -214,7 +218,7 @@ void Preparefiletoprint(t_printdata *print) {
   if (print->readbuf==NULL) {
     Reporterror("Not enough memory for read buffer");
     Stopprinting(print);
-    return; 
+    return -1; 
   };
   // Set options.
 //  print->compression=compression;
@@ -224,6 +228,7 @@ void Preparefiletoprint(t_printdata *print) {
   print->redundancy=redundancy;
   // Step finished.
   print->step++;
+  return 0;
 };
 
 int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
@@ -537,6 +542,7 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
 
   // Step finished.
   print->step++;
+  return 0;
 } 
 
 
