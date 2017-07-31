@@ -49,9 +49,9 @@ typedef struct t_printdata {           // Print control structure
   #endif
   ulong          origsize;             // Original file size, bytes
   ulong          readsize;             // Amount of data read from file so far
-  ulong          datasize;             // Size of (compressed) data
-  ulong          alignedsize;          // Data size aligned to next 16 bytes
-  ulong          pagesize;             // Size of (compressed) data on page
+  //ulong          datasize;             // Size of (compressed) data
+  //ulong          alignedsize;          // Data size aligned to next 16 bytes
+  ulong          pagesize;             // Size of data on page
   int            compression;          // 0: none, 1: fast, 2: maximal
   int            encryption;           // 0: none, 1: encrypt
   int            printheader;          // Print header and footer

@@ -3,7 +3,7 @@
  *
  *       Filename:  Printer.cpp
  *
- *    Description:  Functions to create a bitmap from data
+ *    Description:  Functions to create a bitmap
  *
  *        Version:  1.2 
  *        Created:  07/26/2017 11:43:54 PM
@@ -242,8 +242,9 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   //DEVNAMES *pdevnames;
   // Prepare superdata.
   print->superdata.addr=SUPERBLOCK;
-  print->superdata.datasize=print->alignedsize;
   print->superdata.origsize=print->origsize;
+  std::cout << "print->superdata.addr: " << print->superdata.addr << std::endl;
+  std::cout << "print->origsize: " << print->origsize << std::endl;
   if (print->compression)
     print->superdata.mode|=PBM_COMPRESSED;
   if (print->encryption)
@@ -623,12 +624,14 @@ void Printnextpage(t_printdata *print) {
   BITMAPINFO *pbmi;
   // Calculate offset of this page in data.
   offset=print->frompage*print->pagesize;
-  if (offset>=print->datasize || print->frompage>print->topage) {
+  if (offset>=print->origsize || print->frompage>print->topage) {
     // All requested pages are printed, finish this step.
     print->step++;
-    return; };
+    std::cout << "All pages have been printed" << std::endl;
+    return; 
+  };
   // Report page.
-  npages=(print->datasize+print->pagesize-1)/print->pagesize;
+  npages=(print->origsize+print->pagesize-1)/print->pagesize;
   sprintf(s,"Processing page %i of %i...",print->frompage+1,npages);
   Message(s,0);
   // Get frequently used variables.
@@ -640,7 +643,7 @@ void Printnextpage(t_printdata *print) {
   ny=print->ny;
   width=print->width;
   border=print->border;
-  size=print->alignedsize;
+  size=print->origsize;
   pagesize=print->pagesize;
   redundancy=print->redundancy;
   black=print->black;
