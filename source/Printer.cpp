@@ -853,7 +853,9 @@ void Printnextpage(t_printdata *print) {
       pbmi->bmiHeader.biHeight=height;
       pbmi->bmiHeader.biXPelsPerMeter=(print->ppix*10000)/254;
       pbmi->bmiHeader.biYPelsPerMeter=(print->ppiy*10000)/254;
-      if ((fwrite(pbmi, sizeof(char), n, f) == 0)  || (u!=(ulong)n))  {
+
+      u = fwrite(pbmi, sizeof(char), n, f); 
+      if ( u != (ulong)n )  {
         success=0; 
       }
     };
