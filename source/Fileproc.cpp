@@ -63,7 +63,8 @@ void Closefproc() {
 // Starts new decoded page. Returns non-negative index to table of processed
 // files on success or -1 on error.
 int Startnextpage(t_superblock *superblock) {
-  t_fproc *pf;
+  t_fproc tmp = {};
+  t_fproc *pf = &tmp;
   // initialize new descriptor.
 
   // strnicmp no longer in standard C++
@@ -75,7 +76,7 @@ int Startnextpage(t_superblock *superblock) {
       superblockName.begin(), ::tolower);
   const char * cPfName = pfName.c_str();
   const char * cSuperblockName = superblockName.c_str();
-
+          
 #ifdef __linux__
   // instead of FILETIME comparision, use time_t
   double seconds = difftime(pf->modified, superblock->modified);
