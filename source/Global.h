@@ -173,5 +173,39 @@ inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
 };
 #endif
 
+//prints because debugging is not so effective with giant structs
+inline void print_superblock(t_superblock x) {
+    std::cout 
+        << "addr: " << x.addr
+        << "datasize: " << x.datasize
+        << "pagesize: " << x.pagesize
+        << "origsize: " << x.origsize
+        << "mode: " << x.mode
+        << "page: " << x.page
+//        << "modified: " << x.modified
+        << "attributes: " << x.attributes
+        << "filecrc: " << x.filecrc
+        << "name: " << x.name
+        << "ngroup: " << x.ngroup
+        << std::endl;
+}
+
+inline void print_superdata(t_superdata x) {
+    std::cout 
+        << "addr: " << x.addr
+        << "datasize: " << x.datasize
+        << "pagesize: " << x.pagesize
+        << "origsize: " << x.origsize
+        << "mode: " << x.mode
+        << "attributes: " << x.attributes
+        << "page: " << x.page
+//       << "modified: " << x.modified
+        << "filecrc: " << x.filecrc
+        << "name: " << x.name
+        << "crc: " << x.crc
+        << "ecc: " << x.ecc
+        << std::endl;
+}
+
 #endif //GLOBAL_H
 
