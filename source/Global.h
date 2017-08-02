@@ -173,8 +173,17 @@ inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
 };
 #endif
 
+inline void print_data(t_data &x) {
+    std::cout
+        << "addr: " << addr
+        << "data: " << data
+        << "crc: " << crc
+        << "ecc: " << ecc
+        << std::endl;
+}
+
 //prints because debugging is not so effective with giant structs
-inline void print_superblock(t_superblock x) {
+inline void print_superblock(t_superblock &x) {
     std::cout 
         << "addr: " << x.addr
         << "datasize: " << x.datasize
@@ -190,7 +199,7 @@ inline void print_superblock(t_superblock x) {
         << std::endl;
 }
 
-inline void print_superdata(t_superdata x) {
+inline void print_superdata(t_superdata &x) {
     std::cout 
         << "addr: " << x.addr
         << "datasize: " << x.datasize
