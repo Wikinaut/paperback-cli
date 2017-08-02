@@ -176,9 +176,9 @@ inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
 inline void print_data(t_data &x) {
     std::cout
         << "addr: " << x.addr
-        << "data: " << x.data
-        << "crc: " << x.crc
-        << "ecc: " << x.ecc
+        << " data: " << x.data
+        << " crc: " << x.crc
+        << " ecc: " << x.ecc
         << std::endl;
 }
 
@@ -186,33 +186,33 @@ inline void print_data(t_data &x) {
 inline void print_superblock(t_superblock &x) {
     std::cout 
         << "addr: " << x.addr
-        << "datasize: " << x.datasize
-        << "pagesize: " << x.pagesize
-        << "origsize: " << x.origsize
-        << "mode: " << x.mode
-        << "page: " << x.page
+        << " datasize: " << x.datasize
+        << " pagesize: " << x.pagesize
+        << " origsize: " << x.origsize
+        << " mode: " << x.mode
+        << " page: " << x.page
 //        << "modified: " << x.modified
-        << "attributes: " << x.attributes
-        << "filecrc: " << x.filecrc
-        << "name: " << x.name
-        << "ngroup: " << x.ngroup
+        << " attributes: " << x.attributes
+        << " filecrc: " << x.filecrc
+        << " name: " << x.name
+        << " ngroup: " << x.ngroup
         << std::endl;
 }
 
 inline void print_superdata(t_superdata &x) {
     std::cout 
         << "addr: " << x.addr
-        << "datasize: " << x.datasize
-        << "pagesize: " << x.pagesize
-        << "origsize: " << x.origsize
-        << "mode: " << x.mode
-        << "attributes: " << x.attributes
-        << "page: " << x.page
+        << " datasize: " << x.datasize
+        << " pagesize: " << x.pagesize
+        << " origsize: " << x.origsize
+        << " mode: " << x.mode
+        << " attributes: " << x.attributes
+        << " page: " << x.page
 //       << "modified: " << x.modified
-        << "filecrc: " << x.filecrc
-        << "name: " << x.name
-        << "crc: " << x.crc
-        << "ecc: " << x.ecc
+        << " filecrc: " << x.filecrc
+        << " name: " << x.name
+        << " crc: " << x.crc
+        << " ecc: " << x.ecc
         << std::endl;
 }
 
