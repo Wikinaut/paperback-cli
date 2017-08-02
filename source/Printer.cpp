@@ -45,7 +45,6 @@ int       printborder;          // Border around bitmap
 t_printdata printdata;          // extern
 
 
-
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
 t_printdata Printfile(const std::string &path, const std::string &bmp)
 {
@@ -173,14 +172,14 @@ int Preparefiletoprint(t_printdata *print) {
   if (print->origsize == 0 
       || print -> origsize == INVALID_FILE_SIZE 
       || print->origsize>MAXSIZE 
-      || l!=0) {
-      std::cout << print -> origsize << "," << l << "," << std::endl;
+      || l!=0
+    ) {
+    std::cout << print -> origsize << "," << l << "," << std::endl;
     Reporterror("Invalid file size");
     Stopprinting(print);
     return -1; 
   };
 #elif __linux
-  //!!!TEST struct mem allocation
   // Get file attributes
   if ( stat(print->infile.c_str(), &(print->attributes)) != 0 ) {
     Reporterror("Unable to get input file attributes");

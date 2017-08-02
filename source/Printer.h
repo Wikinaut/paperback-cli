@@ -79,15 +79,71 @@ typedef struct t_printdata {           // Print control structure
   int            borderright;          // Right page border, pixels
   int            bordertop;            // Top page border, pixels
   int            borderbottom;         // Bottom page border, pixels
-  int            dx,dy;                // Distance between dots, pixels
-  int            px,py;                // Dot size, pixels
-  int            nx,ny;                // Grid dimensions, blocks
+  int            dx;                   // Distance between dots, pixels
+  int            dy;                   // Distance between dots, pixels
+  int            px;                   // Dot size, pixels
+  int            py;                   // Dot size, pixels
+  int            nx;                   // Grid dimensions, blocks
+  int            ny;                   // Grid dimensions, blocks
   int            border;               // Border around the data grid, pixels
   uchar          *dibbits;             // Pointer to DIB bits
   uchar          *drawbits;            // Pointer to file bitmap bits
   uchar          bmi[sizeof(BITMAPINFO)+256*sizeof(RGBQUAD)]; // Bitmap info
   int            startdoc;             // Print job started
 } t_printdata;
+
+
+inline void print_printdata(t_printdata& pd) {
+  using namespace std;
+  cout << "step: " << pd.step << endl;
+  cout << "infile: " << pd.infile << endl;
+  cout << "outbmp: " << pd.outbmp << endl;
+#ifdef _WIN32
+  cout << "hfile: " << pd.hfile << endl;
+  cout << "modified: " << pd.modified << endl;
+  cout << "hbmp: " << pd.hbmp << endl;
+  cout << "attributes: " << pd.attributes << endl;
+#elif __linux__
+  cout << "*hfile is non-NULL: " << (pd.hfile != 0) << endl;
+  cout << "attributes is non-NULL: " << (&pd.attributes != 0) << endl;
+  cout << "modified: " << pd.modified << endl;
+#endif
+  cout << "origsize: " << pd.origsize << endl;
+  cout << "readsize: " << pd.readsize << endl;
+  cout << "pagesize: " << pd.pagesize << endl;
+  cout << "printheader: " << pd.printheader << endl;
+  cout << "printborder: " << pd.printborder << endl;
+  cout << "redundancy: " << pd.redundancy << endl;
+  cout << "*buf: " << *pd.buf << endl;
+  cout << "bufsize: " << pd.bufsize << endl;
+  cout << "*readbuf: " << *pd.readbuf << endl;
+  cout << "bufcrc: " << pd.bufcrc << endl;
+  print_superdata(pd.superdata);
+  cout << "frompage: " << pd.frompage << endl;
+  cout << "topage: " << pd.topage << endl;
+  cout << "ppix: " << pd.ppix << endl;
+  cout << "ppiy: " << pd.ppiy << endl;
+  cout << "width: " << pd.width << endl;
+  cout << "height: " << pd.height << endl;
+  cout << "extratop: " << pd.extratop << endl;
+  cout << "extrabottom: " << pd.extrabottom << endl;
+  cout << "black: " << pd.black << endl;
+  cout << "borderleft: " << pd.borderleft << endl;
+  cout << "borderright: " << pd.borderright << endl;
+  cout << "bordertop: " << pd.bordertop << endl;
+  cout << "borderbottom: " << pd.borderbottom << endl;
+  cout << "dx: " << pd.dx << endl;
+  cout << "dy: " << pd.dy << endl;
+  cout << "px: " << pd.px << endl;
+  cout << "py: " << pd.py << endl;
+  cout << "nx: " << pd.nx << endl;
+  cout << "ny: " << pd.ny << endl;
+  cout << "border: " << pd.border << endl;
+  cout << "*dibbits: " << *pd.dibbits << endl;
+  cout << "*drawbits: " << *pd.drawbits << endl;
+  cout << "*bmi: " << *pd.bmi << endl;
+  cout << "startdoc: " << pd.startdoc << endl;
+}
 
 
 //uniques (should not have copies of)
@@ -100,7 +156,7 @@ int    Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight);
 void   Stopprinting(t_printdata *print);
 void   Printnextpage(t_printdata *print);
 static void   Drawblock(int index,t_data *block,uchar *bits,int width,int height,
-                  int border,int nx,int ny,int dx,int dy,int px,int py,int black);
+    int border,int nx,int ny,int dx,int dy,int px,int py,int black);
 static void   Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
-                  int border,int nx,int ny,int dx,int dy,int px,int py,int black);
+    int border,int nx,int ny,int dx,int dy,int px,int py,int black);
 #endif

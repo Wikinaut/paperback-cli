@@ -175,10 +175,10 @@ inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
 
 inline void print_data(t_data &x) {
     std::cout
-        << "addr: " << addr
-        << "data: " << data
-        << "crc: " << crc
-        << "ecc: " << ecc
+        << "addr: " << x.addr
+        << "data: " << x.data
+        << "crc: " << x.crc
+        << "ecc: " << x.ecc
         << std::endl;
 }
 

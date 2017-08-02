@@ -33,12 +33,17 @@ typedef struct t_procdata {            // Descriptor of processed data
   uchar          *data;                // Pointer to bitmap
   int            sizex;                // X bitmap size, pixels
   int            sizey;                // Y bitmap size, pixels
-  int            gridxmin,gridxmax;    // Rought X grid limits, pixels
-  int            gridymin,gridymax;    // Rought Y grid limits, pixels
-  int            searchx0,searchx1;    // X grid search limits, pixels
-  int            searchy0,searchy1;    // Y grid search limits, pixels
+  int            gridxmin;             // Rought X grid limits, pixels
+  int            gridxmax;             // Rought X grid limits, pixels
+  int            gridymin;             // Rought Y grid limits, pixels
+  int            gridymax;             // Rought Y grid limits, pixels
+  int            searchx0;             // X grid search limits, pixels
+  int            searchx1;             // X grid search limits, pixels
+  int            searchy0;             // Y grid search limits, pixels
+  int            searchy1;             // Y grid search limits, pixels
   int            cmean;                // Mean grid intensity (0..255)
-  int            cmin,cmax;            // Minimal and maximal grid intensity
+  int            cmin;                 // Minimal and maximal grid intensity
+  int            cmax;                 // Minimal and maximal grid intensity
   float          sharpfactor;          // Estimated sharpness correction factor
   float          xpeak;                // Base X grid line, pixels
   float          xstep;                // X grid step, pixels
@@ -47,16 +52,22 @@ typedef struct t_procdata {            // Descriptor of processed data
   float          ystep;                // Y grid step, pixels
   float          yangle;               // Y tilt, radians
   float          blockborder;          // Relative width of border around block
-  int            bufdx,bufdy;          // Dimensions of block buffers, pixels
-  uchar          *buf1,*buf2;          // Rotated and sharpened block
-  int            *bufx,*bufy;          // Block grid data finders
+  int            bufdx;                // Dimensions of block buffers, pixels
+  int            bufdy;                // Dimensions of block buffers, pixels
+  uchar          *buf1;                // Rotated and sharpened block
+  uchar          *buf2;                // Rotated and sharpened block
+  int            *bufx;                // Block grid data finders
+  int            *bufy;                // Block grid data finders
   uchar          *unsharp;             // Either buf1 or buf2
   uchar          *sharp;               // Either buf1 or buf2
-  float          blockxpeak,blockypeak;// Exact block position in unsharp
-  float          blockxstep,blockystep;// Exact block dimensions in unsharp
+  float          blockxpeak;           // Exact block position in unsharp
+  float          blockypeak;           // Exact block position in unsharp
+  float          blockxstep;           // Exact block dimensions in unsharp
+  float          blockystep;           // Exact block dimensions in unsharp
   int            nposx;                // Number of blocks to scan in X
   int            nposy;                // Number of blocks to scan in X
-  int            posx,posy;            // Next block to scan
+  int            posx;                 // Next block to scan
+  int            posy;                 // Next block to scan
   t_data         uncorrected;          // Data before ECC for block display
   t_block        *blocklist;           // List of blocks recognized on page
   t_superblock   superblock;           // Page header
@@ -67,6 +78,62 @@ typedef struct t_procdata {            // Descriptor of processed data
   int            nsuper;               // Page statistics: good superblocks
   int            nrestored;            // Page statistics: restored bytes
 } t_procdata;
+
+
+inline void print_procdata(t_procdata &pd) {
+  using namespace std;
+  cout << "step: " << pd.step << endl;
+  cout << "mode: " << pd.mode << endl;
+  cout << "*data: " << *pd.data << endl;
+  cout << "sizex: " << pd.sizex << endl;
+  cout << "sizey: " << pd.sizey << endl;
+  cout << "gridxmin: " << pd.gridxmin << endl;
+  cout << "gridxmax: " << pd.gridxmax << endl;
+  cout << "gridymin: " << pd.gridymin << endl;
+  cout << "gridymax: " << pd.gridymax << endl;
+  cout << "searchx0: " << pd.searchx0 << endl;
+  cout << "searchx1: " << pd.searchx1 << endl;
+  cout << "searchy0: " << pd.searchy0 << endl;
+  cout << "searchy1: " << pd.searchy1 << endl;
+  cout << "cmean: " << pd.cmean << endl;
+  cout << "cmin: " << pd.cmin << endl;
+  cout << "cmax: " << pd.cmax << endl;
+  cout << "sharpfactor: " << pd.sharpfactor << endl;
+  cout << "xpeak: " << pd.xpeak << endl;
+  cout << "xstep: " << pd.xstep << endl;
+  cout << "xangle: " << pd.xangle << endl;
+  cout << "ypeak: " << pd.ypeak << endl;
+  cout << "ystep: " << pd.ystep << endl;
+  cout << "yangle: " << pd.yangle << endl;
+  cout << "blockborder: " << pd.blockborder << endl;
+  cout << "bufdx: " << pd.bufdx << endl;
+  cout << "bufdy: " << pd.bufdy << endl;
+  cout << "*buf1: " << *pd.buf1 << endl;
+  cout << "*buf2: " << *pd.buf2 << endl;
+  cout << "*bufx: " << *pd.bufx << endl;
+  cout << "*bufy: " << *pd.bufy << endl;
+  cout << "*unsharp: " << *pd.unsharp << endl;
+  cout << "*sharp: " << *pd.sharp << endl;
+  cout << "blockxpeak: " << pd.blockxpeak << endl;
+  cout << "blockypeak: " << pd.blockypeak << endl;
+  cout << "blockxstep: " << pd.blockxstep << endl;
+  cout << "blockystep: " << pd.blockystep << endl;
+  cout << "nposx: " << pd.nposx << endl;
+  cout << "nposy: " << pd.nposy << endl;
+  cout << "posx: " << pd.posx << endl;
+  cout << "posy: " << pd.posy << endl;
+  print_data(pd.uncorrected);
+  cout << "*blocklist is non-NULL: " << (pd.blocklist!=0) << endl;
+  print_superblock(pd.superblock);
+  cout << "maxdotsize: " << pd.maxdotsize << endl;
+  cout << "orientation: " << pd.orientation << endl;
+  cout << "ngood: " << pd.ngood << endl;
+  cout << "nbad: " << pd.nbad << endl;
+  cout << "nsuper: " << pd.nsuper << endl;
+  cout << "nrestored: " << pd.nrestored << endl;
+}
+
+
 
 //unique 
 extern int       orientation;          // Orientation of bitmap (-1: unknown)
