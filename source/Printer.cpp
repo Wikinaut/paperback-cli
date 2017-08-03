@@ -248,10 +248,10 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   print->superdata.origsize=print->origsize;
   std::cout << "print->superdata.addr: " << print->superdata.addr << std::endl;
   std::cout << "print->origsize: " << print->origsize << std::endl;
-  if (print->compression)
-    print->superdata.mode|=PBM_COMPRESSED;
-  if (print->encryption)
-    print->superdata.mode|=PBM_ENCRYPTED;
+  //if (print->compression)
+  //  print->superdata.mode|=PBM_COMPRESSED;
+  //if (print->encryption)
+  //  print->superdata.mode|=PBM_ENCRYPTED;
 #ifdef __WIN32
   print->superdata.attributes=(uchar)(print->attributes &
     (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
@@ -650,9 +650,9 @@ void Printnextpage(t_printdata *print) {
   pagesize=print->pagesize;
   redundancy=print->redundancy;
   black=print->black;
-  if (print->outbmp.empty() )
-    bits=print->dibbits;
-  else
+  //if (print->outbmp.empty() )
+  //  bits=print->dibbits;
+  //else
     bits=print->drawbits;
   // Start new page.
   //if (print->outbmp[0]=='\0') {
