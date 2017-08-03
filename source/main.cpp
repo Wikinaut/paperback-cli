@@ -174,7 +174,6 @@ int main(int argc, char ** argv) {
         //Create BMPs until all data has been written to BMP
         int currStep = printdata.step;
         while ( printdata.step == currStep ) {
-          print_printdata(printdata);
           Printnextpage( &printdata );
         }
       }
@@ -196,6 +195,7 @@ int main(int argc, char ** argv) {
           // Decode block by block until step is set to 0
           int currStep = procdata.step;
           while ( procdata.step == currStep ) {
+            ///!!! DEBUG
             print_procdata(procdata);
             Decodenextblock(&procdata);
           }

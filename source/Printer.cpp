@@ -174,7 +174,6 @@ int Preparefiletoprint(t_printdata *print) {
       || print->origsize>MAXSIZE 
       || l!=0
     ) {
-    std::cout << print -> origsize << "," << l << "," << std::endl;
     Reporterror("Invalid file size");
     Stopprinting(print);
     return -1; 
@@ -246,8 +245,6 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   // Prepare superdata.
   print->superdata.addr=SUPERBLOCK;
   print->superdata.origsize=print->origsize;
-  std::cout << "print->superdata.addr: " << print->superdata.addr << std::endl;
-  std::cout << "print->origsize: " << print->origsize << std::endl;
   //if (print->compression)
   //  print->superdata.mode|=PBM_COMPRESSED;
   //if (print->encryption)
@@ -440,22 +437,15 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
   // recovery blocks should be placed into different columns.
   nx=(width-px-2*print->border)/(NDOT*dx+3*dx);
   ny=(height-py-2*print->border)/(NDOT*dy+3*dy);
-  std::cout << "nx: " << nx << std::endl;
-  std::cout << "ny: " << ny << std::endl;
-  std::cout << "width: " << width << std::endl;
-  std::cout << "height: " << height << std::endl;
-  std::cout << "print->ppix: " << print->ppix << std::endl;
-  std::cout << "print->ppiy: " << print->ppiy << std::endl;
-  std::cout << "print->bordertop: " << print->bordertop << std::endl;
-  std::cout << "print->borderbottom: " << print->borderbottom << std::endl;
-  std::cout << "print->borderleft: " << print->borderleft << std::endl;
-  std::cout << "print->borderright: " << print->borderright << std::endl;
-  std::cout << "print->border: " << print->border << std::endl;
-  std::cout << "px: " << px << std::endl;
-  std::cout << "py: " << py << std::endl;
-  std::cout << "NDOT: " << NDOT << std::endl;
-  std::cout << "dx: " << dx <<std::endl;
-  std::cout << "dy: " << dy << std::endl;
+  //std::cout << "nx: " << nx << std::endl;
+  //std::cout << "ny: " << ny << std::endl;
+  //std::cout << "width: " << width << std::endl;
+  //std::cout << "height: " << height << std::endl;
+  //std::cout << "px: " << px << std::endl;
+  //std::cout << "py: " << py << std::endl;
+  //std::cout << "NDOT: " << NDOT << std::endl;
+  //std::cout << "dx: " << dx <<std::endl;
+  //std::cout << "dy: " << dy << std::endl;
   long multResult = nx*ny;
   if ( nx > 0 && ny > 0 && multResult < 0 ) {
     std::cerr << "Input file is too large to back up.  Please break the file apart" << std::endl;
@@ -633,6 +623,10 @@ void Printnextpage(t_printdata *print) {
     std::cout << "All pages have been printed" << std::endl;
     return; 
   };
+
+  //!!! DEBUG
+  print_printdata(*print);
+
   // Report page.
   npages=(print->origsize+print->pagesize-1)/print->pagesize;
   sprintf(s,"Processing page %i of %i...",print->frompage+1,npages);

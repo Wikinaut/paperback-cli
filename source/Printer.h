@@ -95,6 +95,7 @@ typedef struct t_printdata {           // Print control structure
 
 inline void print_printdata(t_printdata& pd) {
   using namespace std;
+  cout << "==============================================================================" << endl;
   cout << "step: " << pd.step << endl;
   cout << "infile: " << pd.infile << endl;
   cout << "outbmp: " << pd.outbmp << endl;
@@ -150,6 +151,7 @@ inline void print_printdata(t_printdata& pd) {
   cout << "*drawbits: " << *pd.drawbits << endl;
   cout << "*bmi: " << *pd.bmi << endl;
   cout << "startdoc: " << pd.startdoc << endl;
+  cout << "==============================================================================" << endl;
 }
 
 

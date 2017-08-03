@@ -82,6 +82,7 @@ typedef struct t_procdata {            // Descriptor of processed data
 
 inline void print_procdata(t_procdata &pd) {
   using namespace std;
+  cout << "==============================================================================" << endl;
   cout << "step: " << pd.step << endl;
   cout << "mode: " << pd.mode << endl;
   cout << "*data: " << *pd.data << endl;
@@ -112,8 +113,14 @@ inline void print_procdata(t_procdata &pd) {
   cout << "*buf2: " << *pd.buf2 << endl;
   cout << "*bufx: " << *pd.bufx << endl;
   cout << "*bufy: " << *pd.bufy << endl;
-  cout << "*unsharp: " << *pd.unsharp << endl;
-  cout << "*sharp: " << *pd.sharp << endl;
+  if( pd.unsharp == NULL )
+    cout << "*unsharp is NULL " << endl;
+  else
+    cout << "*unsharp: " << *pd.unsharp << endl;
+  if( pd.sharp == NULL )
+    cout << "*sharp is NULL" << endl;
+  else
+    cout << "*sharp: " << *pd.sharp << endl;
   cout << "blockxpeak: " << pd.blockxpeak << endl;
   cout << "blockypeak: " << pd.blockypeak << endl;
   cout << "blockxstep: " << pd.blockxstep << endl;
@@ -131,6 +138,7 @@ inline void print_procdata(t_procdata &pd) {
   cout << "nbad: " << pd.nbad << endl;
   cout << "nsuper: " << pd.nsuper << endl;
   cout << "nrestored: " << pd.nrestored << endl;
+  cout << "==============================================================================" << endl;
 }
 
 

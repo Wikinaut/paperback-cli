@@ -333,10 +333,6 @@ int Getgridposition(t_procdata *pdata) {
     if (distry[j]>=limit) break; };
   pdata->gridymax=j*stepy;
 
-  std::cout << "pdata->gridxmax: " << pdata->gridxmax << std::endl;
-  std::cout << "pdata->gridymax: " << pdata->gridymax << std::endl;
-  std::cout << "pdata->gridxmin: " << pdata->gridxmin << std::endl;
-  std::cout << "pdata->gridymin: " << pdata->gridymin << std::endl;
   // Step finished.
   pdata->step++;
   return 0;
@@ -371,7 +367,6 @@ int Getgridintensity(t_procdata *pdata) {
   memset(distrc,0,sizeof(distrc));
   memset(distrd,0,sizeof(distrd));
   cmean=0; n=0;
-  std::cout << "dy: " << dy << std::endl;
   for (j=0; j<dy-1; j++) {
     pd=data+(searchy0+j)*sizex+searchx0;
     for (i=0; i<dx-1; i++,pd++) {
@@ -1142,26 +1137,26 @@ int Decodebitmap(const std::string &fileName) {
   pbih=(BITMAPINFOHEADER *)(buf+sizeof(OverlayBitmapFileHeader));
 #endif
 
-    std::cout //<< pbfh << "\n"
-         << "bfType: " << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"
-         << "bfSize: " << pbfh -> bfSize << ", " << &pbfh -> bfSize <<"\n"
-         << pbfh -> bfReserved1 << ", " << &pbfh -> bfReserved1 <<"\n"
-         << pbfh -> bfReserved2 << ", " << &pbfh -> bfReserved2 <<"\n"
-         << "bfOffBits : " << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
-         << std::endl;
-    std::cout //<< pbih << "\n"
-         << "biSize: " << pbih -> biSize << ", " << &pbih -> biSize << "\n"
-         << "biWidth: " << pbih -> biWidth << ", " << &pbih -> biWidth << "\n"
-         << "biHeight: " << pbih -> biHeight << ", " << &pbih -> biHeight << "\n"
-         << "biPlanes: " << pbih -> biPlanes << ", " << &pbih -> biPlanes << "\n"
-         << "biBitCount: " << pbih -> biBitCount << ", " << &pbih -> biBitCount << "\n"
-         << "biCompression: " << pbih -> biCompression << ", " << &pbih -> biCompression << "\n"
-         << "biSizeImage: " << pbih -> biSizeImage << ", " << &pbih -> biSizeImage << "\n"
-         << "biXPelsPerMeter: " << pbih -> biXPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
-         << "biYPelsPerMeter: " << pbih -> biYPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
-         << "biClrUsed: " << pbih -> biClrUsed << ", " << &pbih -> biClrUsed << "\n"
-         << "biClrImportant: " << pbih -> biClrImportant << ", " << &pbih -> biClrImportant << "\n"
-         << std::endl;
+    //std::cout //<< pbfh << "\n"
+    //     << "bfType: " << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"
+    //     << "bfSize: " << pbfh -> bfSize << ", " << &pbfh -> bfSize <<"\n"
+    //     << pbfh -> bfReserved1 << ", " << &pbfh -> bfReserved1 <<"\n"
+    //     << pbfh -> bfReserved2 << ", " << &pbfh -> bfReserved2 <<"\n"
+    //     << "bfOffBits : " << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
+    //     << std::endl;
+    //std::cout //<< pbih << "\n"
+    //     << "biSize: " << pbih -> biSize << ", " << &pbih -> biSize << "\n"
+    //     << "biWidth: " << pbih -> biWidth << ", " << &pbih -> biWidth << "\n"
+    //     << "biHeight: " << pbih -> biHeight << ", " << &pbih -> biHeight << "\n"
+    //     << "biPlanes: " << pbih -> biPlanes << ", " << &pbih -> biPlanes << "\n"
+    //     << "biBitCount: " << pbih -> biBitCount << ", " << &pbih -> biBitCount << "\n"
+    //     << "biCompression: " << pbih -> biCompression << ", " << &pbih -> biCompression << "\n"
+    //     << "biSizeImage: " << pbih -> biSizeImage << ", " << &pbih -> biSizeImage << "\n"
+    //     << "biXPelsPerMeter: " << pbih -> biXPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+    //     << "biYPelsPerMeter: " << pbih -> biYPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+    //     << "biClrUsed: " << pbih -> biClrUsed << ", " << &pbih -> biClrUsed << "\n"
+    //     << "biClrImportant: " << pbih -> biClrImportant << ", " << &pbih -> biClrImportant << "\n"
+    //     << std::endl;
 
   if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
     std::ostringstream oss;
@@ -1175,14 +1170,14 @@ int Decodebitmap(const std::string &fileName) {
     Reporterror(oss.str());
     return -1;
   }
-  std::cout << "Color bits per pixel: " << pbih->biBitCount << std::endl;
+  //std::cout << "Color bits per pixel: " << pbih->biBitCount << std::endl;
   if ( pbih->biBitCount!=8 && pbih->biBitCount!=24) {
     std::ostringstream oss;
     oss << "Unsupported Bitmap: Must be 8-bit or 24-bit color: " << fileName << std::endl;
     Reporterror(oss.str());
     return -1;
   }
-  std::cout << "# of colors (if 24-bit): " << pbih->biClrUsed << std::endl;
+  //std::cout << "# of colors (if 24-bit): " << pbih->biClrUsed << std::endl;
   if ( pbih->biBitCount==24 && pbih->biClrUsed!=0) {
     std::ostringstream oss;
     oss << "Unsupported Bitmap: 24-bit color bitmaps required to specify number of colors used: " << fileName << std::endl;
