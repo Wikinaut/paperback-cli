@@ -362,7 +362,7 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
 
   //  // Dots on paper are black (palette index 0 in the memory bitmap that will
   //  // be created later in this subroutine).
-  //  print->black=0; }
+    print->black=0; //}
   // I treat printing to bitmap as a debugging feature and set some more or
   // less sound defaults.
 
@@ -389,7 +389,7 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
 //    print->extratop=print->extrabottom=0;
 //    // To simplify recognition of grid on high-contrast bitmap, dots on the
 //    // bitmap are dark gray.
-//    print->black=64; 
+    print->black=64; 
 
 
 
