@@ -52,8 +52,8 @@ typedef struct t_printdata {           // Print control structure
   //ulong          datasize;             // Size of (compressed) data
   //ulong          alignedsize;          // Data size aligned to next 16 bytes
   ulong          pagesize;             // Size of data on page
-  int            compression;          // 0: none, 1: fast, 2: maximal
-  int            encryption;           // 0: none, 1: encrypt
+  //int            compression;          // 0: none, 1: fast, 2: maximal
+  //int            encryption;           // 0: none, 1: encrypt
   int            printheader;          // Print header and footer
   int            printborder;          // Print border around bitmap
   int            redundancy;           // Redundancy
@@ -86,7 +86,7 @@ typedef struct t_printdata {           // Print control structure
   int            nx;                   // Grid dimensions, blocks
   int            ny;                   // Grid dimensions, blocks
   int            border;               // Border around the data grid, pixels
-  uchar          *dibbits;             // Pointer to DIB bits
+  //uchar          *dibbits;             // Pointer to DIB bits
   uchar          *drawbits;            // Pointer to file bitmap bits
   uchar          bmi[sizeof(BITMAPINFO)+256*sizeof(RGBQUAD)]; // Bitmap info
   int            startdoc;             // Print job started
@@ -139,7 +139,7 @@ inline void print_printdata(t_printdata& pd) {
   cout << "nx: " << pd.nx << endl;
   cout << "ny: " << pd.ny << endl;
   cout << "border: " << pd.border << endl;
-  cout << "*dibbits: " << *pd.dibbits << endl;
+  //cout << "*dibbits: " << *pd.dibbits << endl;
   cout << "*drawbits: " << *pd.drawbits << endl;
   cout << "*bmi: " << *pd.bmi << endl;
   cout << "startdoc: " << pd.startdoc << endl;
