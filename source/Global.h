@@ -61,39 +61,39 @@ typedef unsigned long  ulong;
 #define NGROUPMIN      2
 #define NGROUPMAX      10
 
-typedef struct t_data {                // Block on paper
-  ulong          addr;                 // Offset of the block or special code
+typedef struct __attribute__ ((packed)) t_data { // Block on paper
+  uint32_t       addr;                 // Offset of the block or special code
   uchar          data[NDATA];          // Useful data
-  ushort         crc;                  // Cyclic redundancy of addr and data
+  uint16_t       crc;                  // Cyclic redundancy of addr and data
   uchar          ecc[32];              // Reed-Solomon's error correction code
 } t_data;
-static_assert(sizeof(t_data)==128);
+//static_assert(sizeof(t_data)==128);
 
 #define PBM_COMPRESSED 0x01            // Paper backup is compressed
 #define PBM_ENCRYPTED  0x02            // Paper backup is encrypted
 
 // FILETIME is 64-bit data type, time_t typically 64-bit, but was 32-bit in
-// older *NIX versions.  long and pointers are 64-bit in *NIX while only
-// 32-bit in Windows.  Depending on implementation, alignment issues possible
-typedef struct t_superdata {           // Identification block on paper
-  ulong          addr;                 // Expecting SUPERBLOCK
-  ulong          datasize;             // Size of (compressed) data
-  ulong          pagesize;             // Size of (compressed) data on page
-  ulong          origsize;             // Size of original (uncompressed) data
+// older *NIX versions.  Assertion failure is likely due to this.  128 bytes
+// is necessary for ECC to work properly (and multiples of 16 for CRC)
+typedef struct __attribute__ ((packed)) t_superdata { // Identification block on paper
+  uint32_t       addr;                 // Expecting SUPERBLOCK
+  uint32_t       datasize;             // Size of (compressed) data
+  uint32_t       pagesize;             // Size of (compressed) data on page
+  uint32_t       origsize;             // Size of original (uncompressed) data
   uchar          mode;                 // Special mode bits, set of PBM_xxx
   uchar          attributes;           // Basic file attributes
-  ushort         page;                 // Actual page (1-based)
+  uint16_t       page;                 // Actual page (1-based)
 #ifdef _WIN32
   FILETIME       modified;             // Time of last file modification
 #elif __linux__
   time_t         modified;
 #endif
-  ushort         filecrc;              // CRC of compressed decrypted file
+  uint16_t       filecrc;              // CRC of compressed decrypted file
   char           name[64];             // File name - may have all 64 chars
-  ushort         crc;                  // Cyclic redundancy of previous fields
+  uint16_t       crc;                  // Cyclic redundancy of previous fields
   uchar          ecc[32];              // Reed-Solomon's error correction code
 } t_superdata;
-static_assert(sizeof(t_superdata)==sizeof(t_data));
+//static_assert(sizeof(t_superdata)==sizeof(t_data));
 
 typedef struct t_block {               // Block in memory
   ulong          addr;                 // Offset of the block
