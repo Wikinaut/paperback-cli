@@ -102,13 +102,7 @@ inline void print_printdata(t_printdata& pd) {
 #ifdef _WIN32
   cout << "hfile: " << pd.hfile << endl;
 //  cout << "modified: " << pd.modified << endl;
-  {
-      char str[30];
-      int ok = Filetimetotext(&pd.modified, str, 30);
-      if (ok) {
-          cout << str << endl;
-      }
-  }
+  print_filetime(pd.modified);
   cout << "hbmp: " << pd.hbmp << endl;
   cout << "attributes: " << pd.attributes << endl;
 #elif __linux__

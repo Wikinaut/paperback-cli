@@ -67,7 +67,7 @@ typedef struct t_data {                // Block on paper
   ushort         crc;                  // Cyclic redundancy of addr and data
   uchar          ecc[32];              // Reed-Solomon's error correction code
 } t_data;
-static_assert(sizeof(t_data)==128);
+//static_assert(sizeof(t_data)==128);
 
 #define PBM_COMPRESSED 0x01            // Paper backup is compressed
 #define PBM_ENCRYPTED  0x02            // Paper backup is encrypted
@@ -93,7 +93,7 @@ typedef struct t_superdata {           // Identification block on paper
   ushort         crc;                  // Cyclic redundancy of previous fields
   uchar          ecc[32];              // Reed-Solomon's error correction code
 } t_superdata;
-static_assert(sizeof(t_superdata)==sizeof(t_data));
+//static_assert(sizeof(t_superdata)==sizeof(t_data));
 
 typedef struct t_block {               // Block in memory
   ulong          addr;                 // Offset of the block
@@ -171,7 +171,24 @@ inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
   l+=GetTimeFormat(LOCALE_USER_DEFAULT,TIME_NOSECONDS,&sttime,NULL,s+l,n-l);
   return l;
 };
+
+inline void print_filetime(FILETIME ftime) {
+    char str[30];
+    int ok = Filetimetotext(&ftime, str, 30);
+    if (ok) {
+        std::cout << str << std::endl;
+    }
+}
+
+#elif __linux__
+
+inline void print_filetime(time_t &ftime) {
+    std::cout << ftime << std::endl;
+}
+
 #endif
+
+
 
 inline void print_data(t_data &x) {
     std::cout
@@ -182,6 +199,9 @@ inline void print_data(t_data &x) {
         << std::endl;
 }
 
+
+
+
 //prints because debugging is not so effective with giant structs
 inline void print_superblock(t_superblock &x) {
     std::cout 
@@ -190,8 +210,9 @@ inline void print_superblock(t_superblock &x) {
         << " pagesize: " << x.pagesize
         << " origsize: " << x.origsize
         << " mode: " << x.mode
-        << " page: " << x.page
-        << " modified: " << x.modified
+        << " page: " << x.page;
+    print_filetime(x.modified);
+    std::cout
         << " attributes: " << x.attributes
         << " filecrc: " << x.filecrc
         << " name: " << x.name
@@ -207,8 +228,9 @@ inline void print_superdata(t_superdata &x) {
         << " origsize: " << x.origsize
         << " mode: " << x.mode
         << " attributes: " << x.attributes
-        << " page: " << x.page
-        << " modified: " << x.modified
+        << " page: " << x.page;
+    print_filetime(x.modified);
+    std::cout
         << " filecrc: " << x.filecrc
         << " name: " << x.name
         << " crc: " << x.crc
