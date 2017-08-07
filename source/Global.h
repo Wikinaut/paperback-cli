@@ -4,7 +4,7 @@
  *       Filename:  Global.h
  *
  *    Description:  As paperback was designed around global memory management, some 
- *                  must remain global until serious refactoring
+ *i                  must remain global until serious refactoring
  *
  *        Version:  1.2
  *        Created:  07/25/2017 09:23:02 AM
@@ -180,12 +180,6 @@ inline void print_filetime(FILETIME ftime) {
     }
 }
 
-#elif __linux__
-
-inline void print_filetime(time_t &ftime) {
-    std::cout << ftime << std::endl;
-}
-
 #endif
 
 
@@ -211,8 +205,13 @@ inline void print_superblock(t_superblock &x) {
         << " origsize: " << x.origsize
         << " mode: " << x.mode
         << " page: " << x.page;
+#ifdef _WIN32
     print_filetime(x.modified);
     std::cout
+#elif __linux__
+    std::cout 
+        << " modified: " << x.attributes
+#endif
         << " attributes: " << x.attributes
         << " filecrc: " << x.filecrc
         << " name: " << x.name
@@ -229,8 +228,13 @@ inline void print_superdata(t_superdata &x) {
         << " mode: " << x.mode
         << " attributes: " << x.attributes
         << " page: " << x.page;
+#ifdef _WIN32
     print_filetime(x.modified);
     std::cout
+#elif __linux
+    std::cout
+        << " modified: " << x.attributes
+#endif
         << " filecrc: " << x.filecrc
         << " name: " << x.name
         << " crc: " << x.crc
