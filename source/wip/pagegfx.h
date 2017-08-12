@@ -1,5 +1,5 @@
-#ifndef ___PAGEGFX_HPP___
-#define ___PAGEGFX_HPP___
+#ifndef ___PAGEGFX_H___
+#define ___PAGEGFX_H___
 
 #include <stdbool.h>
 
