@@ -3,6 +3,20 @@
 
 #include <stdbool.h>
 
+void Fillblock(int,
+               int,
+               unsigned char *,
+               int,
+               int,
+               int,
+               int,
+               int,
+               int,
+               int,
+               int,
+               int,
+               int);
+
 // Deals with graphics pertaining to page
 
 int Getprintablewidth(unsigned int, int);
@@ -33,4 +47,19 @@ struct pagegfx init_pagegfx(int,
                             int, 
                             int,
                             bool);
+
+void draw_grid_vlines (unsigned char *, 
+                       struct pagegfx,
+                       bool, 
+                       int);
+
+void draw_grid_hline(unsigned char *,
+                     struct pagegfx,
+                     bool,
+                     int);
+
+void fillraster(unsigned char *,
+                struct pagegfx,
+                int,
+                bool);
 #endif
