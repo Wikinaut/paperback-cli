@@ -4,7 +4,7 @@
  *       Filename:  Global.h
  *
  *    Description:  As paperback was designed around global memory management, some 
- *i                  must remain global until serious refactoring
+ *                  must remain global until serious refactoring
  *
  *        Version:  1.2
  *        Created:  07/25/2017 09:23:02 AM
@@ -41,13 +41,6 @@ typedef unsigned long  ulong;
 
 #define TEXTLEN        256             // Maximal length of strings
 
-//Arbitrary values set by Borland compiler
-#define MAXPATH 80
-#define MAXFILE 9 
-#define MAXEXT 5    
-#define MAXDIR 66 
-#define MAXDRIVE 3
-
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// DATA PROPERTIES ////////////////////////////////
 
@@ -60,6 +53,20 @@ typedef unsigned long  ulong;
 #define NGROUP         5               // For NGROUP blocks (1..15), 1 recovery
 #define NGROUPMIN      2
 #define NGROUPMAX      10
+
+//Values set by Borland compiler
+#define MAXPATH 80
+#define MAXFILE 9 
+#define MAXEXT 5    
+#define MAXDIR 66 
+#define MAXDRIVE 3
+
+// Size required by Reed-Solomon ECC
+#define ECC_SIZE 32
+
+// Oleh's magic numbers
+#define FILENAME_SIZE 64
+
 
 typedef struct __attribute__ ((packed)) t_data { // Block on paper
   uint32_t       addr;                 // Offset of the block or special code
@@ -89,9 +96,9 @@ typedef struct __attribute__ ((packed)) t_superdata { // Identification block on
   time_t         modified;
 #endif
   uint16_t       filecrc;              // CRC of compressed decrypted file
-  char           name[64];             // File name - may have all 64 chars
+  char           name[FILENAME_SIZE];  // MULTIUSE; file name, salt, iv
   uint16_t       crc;                  // Cyclic redundancy of previous fields
-  uchar          ecc[32];              // Reed-Solomon's error correction code
+  uchar          ecc[ECC_SIZE];        // Reed-Solomon's error correction code
 } t_superdata;
 //static_assert(sizeof(t_superdata)==sizeof(t_data));
 
@@ -115,7 +122,7 @@ typedef struct t_superblock {          // Identification block in memory
 #endif
   ulong          attributes;           // Basic file attributes
   ulong          filecrc;              // 16-bit CRC of decrypted packed file
-  char           name[64];             // File name - may have all 64 chars
+  char           name[FILENAME_SIZE];  // MULTIUSE; file name, salt, iv
   int            ngroup;               // Actual NGROUP on the page
 } t_superblock;
 
@@ -181,6 +188,107 @@ inline void print_filetime(FILETIME ftime) {
 }
 
 #endif
+
+
+
+// Portable version of Borlands fnsplit
+// NOTE: Does not handle wildcard *
+// NOTE: does not return bitvector showing what components were found
+inline int fnsplit(const char *path, 
+                   char *drive, 
+                   char *dir, 
+                   char *name,
+                   char *ext,
+                   int pathLen) 
+{
+  int i = 0;  // for loop iterator set after drive letter, if needed
+  if (path != NULL &&  pathLen > 2 && path[1] == ':') {
+    if (drive != NULL)
+      strncat (drive, path, 2);
+    i = 2;
+  }
+
+  // path not necessarily terminated by \0
+  // parse char by char
+  char token[pathLen];
+  int iToken = 0;
+  bool hasName = false;
+  for ( ; i < pathLen; i++) {
+    // if delimiter, act accordingly
+    // token is part of the directory
+    if (path[i] == '/' || path[i] == '\\') {
+      token[iToken++] = path[i];
+      token[iToken++] = '\0';
+      if (dir != NULL) 
+        strcat (dir, token);
+      iToken = 0;
+      continue;
+    }
+    // token is name
+    else if (path[i] == '.') {
+      hasName = true;
+      token[iToken] = '\0';
+      if (name != NULL)
+        strcat (name, token);
+      iToken = 0;
+      continue;
+    }
+    // token is name or extension
+    else if (path[i] == '\0' || i >= pathLen - 1 ) {
+      if (hasName) {
+        // is extension 
+        token[iToken] = '\0';
+        if (ext != NULL)  
+          strcat (ext, token);
+        // all parts gathered, exit function
+        break;
+      } 
+      else {
+        // is name
+        token[i] = '\0';
+        if (name != NULL)
+          strcat (name, token);
+        // all parts gathered, exit
+        break;
+      }
+    }
+    else {
+    //if not delimiter, build string
+    token[iToken++] = path[i]; 
+    }
+  }
+  
+  return 0;
+}
+
+
+
+// Portable version of Borlands fnmerge
+inline void fnmerge (char *path,
+              const char *drive,
+              const char *dir,
+              const char *name,
+              const char * ext)
+{
+  if (path == NULL) {
+    return;
+  }
+
+  if (drive != NULL) {
+    strncat (path, drive, strlen(drive));
+  }
+  if (dir != NULL) {
+    strncat (path, dir, strlen(dir));
+  }
+  if (name != NULL) {
+    strncat (path, name, strlen(name));
+  }
+  if (ext != NULL && (strlen(path) + 2) < FILENAME_SIZE) {
+    path[strlen(path)] = '.';
+    path[ strlen(path) + 1 ] = '\0';
+    strncat (path, ext, strlen(ext));
+  }
+}
 
 
 
