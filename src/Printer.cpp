@@ -254,10 +254,10 @@ int Initializeprinting(t_printdata *print, uint pageWidth, uint pageHeight) {
     (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
     FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_ARCHIVE|
     FILE_ATTRIBUTE_NORMAL));
+  //set print->modified
   print->superdata.modified=print->modified;
 #elif __linux__
   //!!! get attributes needed to recreate file from stat
-  //set print->modified
 #endif
   print->superdata.filecrc=(ushort)print->bufcrc;
   //fnsplit(print->infile,NULL,NULL,nam,ext);
