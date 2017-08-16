@@ -1,7 +1,7 @@
 EX=paperback-cli
 SDIR=./src
 CC=g++
-CFLAGS=-std=c++11 -I"$(SDIR)" -I"$(SDIR)/cxxopts/include" -g -I"$(SDIR)/PortLibCpp/src"
+CFLAGS=-std=c++11 -I"$(SDIR)" -I"$(SDIR)/PortLibCpp/src" -I"$(SDIR)/cxxopts/include" -I"$(SDIR)/BZLIB/" -I"$(SDIR)/AES" -g
 
 all: main
 
