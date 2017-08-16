@@ -28,20 +28,32 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-#include <windows.h>
+#include <algorithm>
+#include <cstring>
+#include <iostream>
+#include <math.h>
+#include <stdio.h>
+#include <sstream>
+#include "Crc16.h"
+#include "Decoder.h"
+#include "Ecc.h"
+#include "Fileproc.h"
+#ifdef __linux__
+#include "Bitmap.h"
 #endif
-#include <stdlib.h>
-#include "bzlib.h"
-#include "aes.h"
-
-#include "paperbak.h"
-#include "Resource.h"
 
 #define NHYST          1024            // Number of points in histogramm
 #define NPEAK          32              // Maximal number of peaks
 #define SUBDX          8               // X size of subblock, pixels
 #define SUBDY          8               // Y size of subblock, pixels
+
+
+#ifdef _WIN32
+#define OverlayBitmapFileHeader BITMAPFILEHEADER
+#endif
+
+char      inbmp[MAXPATH];       // extern
+t_procdata procdata;            // extern
 
 // Given hystogramm h of length n points, locates black peaks and determines
 // phase and step of the grid.
@@ -63,12 +75,12 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
   d=(amax-amin+16)/32;
   ampl=h[0];
   for (i=0; i<n; i++) {
-    l[i]=ampl=max(ampl-d,h[i]); };
+    l[i]=ampl=std::max(ampl-d,h[i]); };
   amax=0;
   for (i=n-1; i>=0; i--) {
-    ampl=max(ampl-d,l[i]);
+    ampl=std::max(ampl-d,l[i]);
     l[i]=ampl-h[i];
-    amax=max(amax,l[i]); };
+    amax=std::max(amax,l[i]); };
 
 // TRY TO COMPARE WITH SECOND LARGE PEAK?
 
@@ -89,7 +101,7 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
       ampl=l[i]-limit;
       area+=ampl;
       moment+=ampl*i;
-      amax=max(amax,l[i]);
+      amax=std::max(amax,l[i]);
       i++; };
     // Don't process incomplete peaks.
     if (i>=n) break;
@@ -152,6 +164,8 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
   *beststep=(sx*sy-sn*sxy)/(sx*sx-sn*sxx);
   return moment/sn;
 };
+
+
 
 // Given grid of recognized dots, extracts saved information. Returns number of
 // corrected erorrs (0..16) on success and 17 if information is not readable.
@@ -239,7 +253,8 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
           // Report success.
           if ((pdata->mode & M_BEST)==0) {
             lastgood=q;
-            return answer; }
+            return answer; 
+          }
           else if (answer<bestanswer) {
             bestanswer=answer;
             bestresult=*result;
@@ -254,8 +269,10 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
   return bestanswer;
 };
 
+
+
 // Determines rough grid position.
-static void Getgridposition(t_procdata *pdata) {
+int Getgridposition(t_procdata *pdata) {
   int i,j,nx,ny,stepx,stepy,sizex,sizey;
   int c,cmin,cmax,distrx[256],distry[256],limit;
   uchar *data,*pd;
@@ -266,7 +283,9 @@ static void Getgridposition(t_procdata *pdata) {
   // Check overall bitmap size.
   if (sizex<=3*NDOT || sizey<=3*NDOT) {
     Reporterror("Bitmap is too small to process");
-    pdata->step=0; return; };
+    pdata->step=0; 
+    return -1; 
+  };
   // Select horizontal and vertical lines (at most 256 in each direction) to
   // check for grid location.
   stepx=sizex/256+1; nx=(sizex-2)/stepx; if (nx>256) nx=256;
@@ -282,10 +301,10 @@ static void Getgridposition(t_procdata *pdata) {
     pd=data+j*stepy*sizex;
     for (i=0; i<nx; i++,pd+=stepx) {
       c=pd[0];         cmin=c;           cmax=c;
-      c=pd[2];         cmin=min(cmin,c); cmax=max(cmax,c);
-      c=pd[sizex+1];   cmin=min(cmin,c); cmax=max(cmax,c);
-      c=pd[2*sizex];   cmin=min(cmin,c); cmax=max(cmax,c);
-      c=pd[2*sizex+2]; cmin=min(cmin,c); cmax=max(cmax,c);
+      c=pd[2];         cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[sizex+1];   cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[2*sizex];   cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[2*sizex+2]; cmin=std::min(cmin,c); cmax=std::max(cmax,c);
       distrx[i]+=cmax-cmin;
       distry[j]+=cmax-cmin;
     };
@@ -313,12 +332,16 @@ static void Getgridposition(t_procdata *pdata) {
   for (j=ny-1; j>0; j--) {
     if (distry[j]>=limit) break; };
   pdata->gridymax=j*stepy;
+
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
+
+
 // Selects search range, determines grid intensity and estimates sharpness.
-static void Getgridintensity(t_procdata *pdata) {
+int Getgridintensity(t_procdata *pdata) {
   int i,j,sizex,sizey,centerx,centery,dx,dy,n;
   int searchx0,searchy0,searchx1,searchy1;
   int distrc[256],distrd[256],cmean,cmin,cmax,limit,sum,contrast;
@@ -353,6 +376,10 @@ static void Getgridintensity(t_procdata *pdata) {
     };
   };
   // Calculate mean, minimal and maximal image intensity.
+  if( n == 0 ) {
+    std::cerr << "Number of data points is 0, avoiding divide by 0 (internal error)" << std::endl;
+    return -1;
+  }
   cmean/=n;
   limit=n/33;                          // 3% of the total number of pixels
   for (cmin=0,sum=0; cmin<255; cmin++) {
@@ -362,9 +389,10 @@ static void Getgridintensity(t_procdata *pdata) {
     sum+=distrc[cmax];
     if (sum>=limit) break; };
   if (cmax-cmin<1) {
-    Reporterror("No image");
+    Reporterror("No Image");
     pdata->step=0;
-    return; };
+    return -1; 
+  };
   // Estimate image sharpness. The factor is rather empirical. Later, when
   // dot size is known, this value will be corrected.
   limit=n/10;                          // 5% (each point is counted twice)
@@ -382,10 +410,13 @@ static void Getgridintensity(t_procdata *pdata) {
   pdata->cmax=cmax;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
+
+
 // Find angle and step of vertical grid lines.
-static void Getxangle(t_procdata *pdata) {
+int Getxangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex;
   int h[NHYST],nh[NHYST],ystep;
   uchar *data,*pd;
@@ -440,16 +471,20 @@ static void Getxangle(t_procdata *pdata) {
   if (maxweight==0.0 || bestxstep<NDOT) {
     Reporterror("No grid");
     pdata->step=0;
-    return; };
+    return -1;
+  };
   pdata->xpeak=bestxpeak;
   pdata->xstep=bestxstep;
   pdata->xangle=bestxangle;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
+
+
 // Find angle and step of horizontal grid lines. Very similar to Getxangle().
-static void Getyangle(t_procdata *pdata) {
+int Getyangle(t_procdata *pdata) {
   int i,j,a,x,y,x0,y0,dx,dy,sizex,sizey;
   int h[NHYST],nh[NHYST],xstep;
   uchar *data,*pd;
@@ -503,16 +538,20 @@ static void Getyangle(t_procdata *pdata) {
   ) {
     Reporterror("No grid");
     pdata->step=0;
-    return; };
+    return -1;
+  };
   pdata->ypeak=bestypeak;
   pdata->ystep=bestystep;
   pdata->yangle=bestyangle;
   // Step finished.
   pdata->step++;
+  return 0;
 };
 
+
+
 // Prepare data and allocate memory for data decoding.
-static void Preparefordecoding(t_procdata *pdata) {
+void Preparefordecoding(t_procdata *pdata) {
   int sizex,sizey,dx,dy;
   float xstep,ystep,border,sharpfactor,shift,maxxshift,maxyshift,dotsize;
   // Get frequently used variables.
@@ -525,10 +564,10 @@ static void Preparefordecoding(t_procdata *pdata) {
   // Empirical formula: the larger the angle, the more imprecise is the
   // expected position of the block.
   if (border<=0.0) {
-    border=max(fabs(pdata->xangle),fabs(pdata->yangle))*5.0+0.4;
+    border=std::max(fabs(pdata->xangle),fabs(pdata->yangle))*5.0+0.4;
     pdata->blockborder=border; };
   // Correct sharpness for known dot size. This correction is empirical.
-  dotsize=max(xstep,ystep)/(NDOT+3.0);
+  dotsize=std::max(xstep,ystep)/(NDOT+3.0);
   sharpfactor+=1.3/dotsize-0.1;
   if (sharpfactor<0.0) sharpfactor=0.0;
   else if (sharpfactor>2.0) sharpfactor=2.0;
@@ -554,25 +593,27 @@ static void Preparefordecoding(t_procdata *pdata) {
   pdata->nposy=(int)((sizey+maxyshift)/ystep);
   // Start new quality map. Note that this call doesn't force map to be
   // displayed.
-  Initqualitymap(pdata->nposx,pdata->nposy);
+  //Initqualitymap(pdata->nposx,pdata->nposy);
+  //!!! While a display is not planned, making the quality data
+  //!!!  available is desirable
   // Allocate block buffers.
   dx=xstep*(2.0*border+1.0)+1.0;
   dy=ystep*(2.0*border+1.0)+1.0;
-  pdata->buf1=(uchar *)GlobalAlloc(GMEM_FIXED,dx*dy);
-  pdata->buf2=(uchar *)GlobalAlloc(GMEM_FIXED,dx*dy);
-  pdata->bufx=(int *)GlobalAlloc(GMEM_FIXED,dx*sizeof(int));
-  pdata->bufy=(int *)GlobalAlloc(GMEM_FIXED,dy*sizeof(int));
+  pdata->buf1=(uchar *)malloc(dx*dy); //GMEM_FIXED
+  pdata->buf2=(uchar *)malloc(dx*dy); //GMEM_FIXED
+  pdata->bufx=(int *)malloc(dx*sizeof(int)); //GMEM_FIXED
+  pdata->bufy=(int *)malloc(dy*sizeof(int)); //GMEM_FIXED
   pdata->blocklist=(t_block *)
-    GlobalAlloc(GMEM_FIXED,pdata->nposx*pdata->nposy*sizeof(t_block));
+    malloc(pdata->nposx*pdata->nposy*sizeof(t_block)); //GMEM_FIXED
   // Check that we have enough memory.
   if (pdata->buf1==NULL || pdata->buf2==NULL ||
     pdata->bufx==NULL || pdata->bufy==NULL || pdata->blocklist==NULL
   ) {
-    if (pdata->buf1!=NULL) GlobalFree((HGLOBAL)pdata->buf1);
-    if (pdata->buf2!=NULL) GlobalFree((HGLOBAL)pdata->buf2);
-    if (pdata->bufx!=NULL) GlobalFree((HGLOBAL)pdata->bufx);
-    if (pdata->bufy!=NULL) GlobalFree((HGLOBAL)pdata->bufy);
-    if (pdata->blocklist!=NULL) GlobalFree((HGLOBAL)pdata->blocklist);
+    if (pdata->buf1!=NULL) free(pdata->buf1);
+    if (pdata->buf2!=NULL) free(pdata->buf2);
+    if (pdata->bufx!=NULL) free(pdata->bufx);
+    if (pdata->bufy!=NULL) free(pdata->bufy);
+    if (pdata->blocklist!=NULL) free(pdata->blocklist);
     Reporterror("Low memory");
     pdata->step=0;
     return; };
@@ -599,6 +640,8 @@ static void Preparefordecoding(t_procdata *pdata) {
   // Step finished.
   pdata->step++;
 };
+
+
 
 // The most important routine, converts scanned blocks into data. Used both by
 // data decoder and by block display. Returns -1 if block cannot be located,
@@ -664,7 +707,7 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
         if (i==0 || i==dx-1 || j==0 || j==dy-1)
           *pdest=*psrc;
         else {
-          *pdest=(uchar)max(cmin,min((int)(psrc[0]*(1.0+4.0*sharpfactor)-
+          *pdest=(uchar)std::max(cmin,std::min((int)(psrc[0]*(1.0+4.0*sharpfactor)-
           (psrc[-dx]+psrc[-1]+psrc[1]+psrc[dx])*sharpfactor),cmax));
         };
       };
@@ -683,14 +726,22 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
       bufy[j]+=*psrc;
     };
   };
-  if (Findpeaks(bufx,dx,&xpeak,&xstep)<=0.0)
+  if (Findpeaks(bufx,dx,&xpeak,&xstep)<=0.0) { 
+    std::cerr << "No X grid found" << std::endl;
     return -1;                         // No X grid
-  if (fabs(xstep-pdata->xstep)>pdata->xstep/16.0)
+  }
+  if (fabs(xstep-pdata->xstep)>pdata->xstep/16.0) {
+    std::cerr << "Invalid grid step" << std::endl;
     return -1;                         // Invalid grid step
-  if (Findpeaks(bufy,dy,&ypeak,&ystep)<=0.0)
+  }
+  if (Findpeaks(bufy,dy,&ypeak,&ystep)<=0.0) {
+    std::cerr << "No Y grid found" << std::endl;
     return -1;                         // No Y grid
-  if (fabs(ystep-pdata->ystep)>pdata->ystep/16.0)
+  }
+  if (fabs(ystep-pdata->ystep)>pdata->ystep/16.0) {
+    std::cerr << "Invalid grid step" << std::endl;
     return -1;                         // Invalid grid step
+  }
   // Save block position for displaying purposes.
   pdata->blockxpeak=xpeak;
   pdata->blockxstep=xstep;
@@ -813,7 +864,9 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
   return answer;
 };
 
-static void Decodenextblock(t_procdata *pdata) {
+
+
+void Decodenextblock(t_procdata *pdata) {
   int answer,ngroup,percent;
   char s[TEXTLEN];
   t_data result;
@@ -825,7 +878,8 @@ static void Decodenextblock(t_procdata *pdata) {
     pdata->superblock.name,pdata->superblock.page);
   percent=(pdata->posy*pdata->nposx+pdata->posx)*100/
     (pdata->nposx*pdata->nposy);
-  Message(s,percent);
+  if( percent % 10 == 0 )
+    Message(s,percent);
   // Decode block.
   answer=Decodeblock(pdata,pdata->posx,pdata->posy,&result);
   // If we are unable to locate block, probably we are outside the raster.
@@ -833,13 +887,14 @@ static void Decodenextblock(t_procdata *pdata) {
     goto finish;
   // If this is the very first block located on the page, show it in the block
   // display window.
-  if (pdata->ngood==0 && pdata->nbad==0 && pdata->nsuper==0)
-    Displayblockimage(pdata,pdata->posx,pdata->posy,answer,&result);
+  /*if (pdata->ngood==0 && pdata->nbad==0 && pdata->nsuper==0)
+    Displayblockimage(pdata,pdata->posx,pdata->posy,answer,&result);*///GUI
   // Analyze answer.
   if (answer>=17) {
     // Error, block is unreadable.
     pdata->nbad++; }
   else if (result.addr==SUPERBLOCK) {
+    std::cout << "Superblock located and decoded" << std::endl;
     // Superblock.
     pdata->superblock.addr=SUPERBLOCK;
     pdata->superblock.datasize=((t_superdata *)&result)->datasize;
@@ -869,7 +924,8 @@ static void Decodenextblock(t_procdata *pdata) {
     // of quality.
     pdata->nrestored+=answer; };
   // Add block to quality map.
-  Addblocktomap(pdata->posx,pdata->posy,answer);
+  //!!! for quality map
+  //Addblocktomap(pdata->posx,pdata->posy,answer);
   // Block processed, set new coordinates.
 finish:
   pdata->posx++;
@@ -882,26 +938,34 @@ finish:
   };
 };
 
+
+
 // Passes gathered data to file processor and frees resources allocated by call
 // to Preparefordecoding().
-static void Finishdecoding(t_procdata *pdata) {
+void Finishdecoding(t_procdata *pdata) {
+  std::cout << "Finished decoding bitmap" << std::endl;
+  std::cout << "  # superblocks: " << pdata->nsuper << std::endl;
+  std::cout << "  # good blocks: " << pdata->ngood << std::endl;
+  std::cout << "  # bad blocks: " << pdata->nbad << std::endl;
+  std::cout << "  # restored blocks: " << pdata->nrestored << std::endl;
   int i,fileindex;
   // Pass gathered data to file processor.
   if (pdata->superblock.addr==0)
-    Reporterror("Page label is not readable");
+    Reporterror("Header data was not found in bitmap, failed to write decoded data to file");
   else {
     fileindex=Startnextpage(&pdata->superblock);
     if (fileindex>=0) {
       for (i=0; i<pdata->ngood; i++)
-        Addblock(pdata->blocklist+i,fileindex);
-      Finishpage(fileindex,
-        pdata->ngood+pdata->nsuper,pdata->nbad,pdata->nrestored);
+        Addblock(pdata->blocklist+i);
+      Finishpage(pdata->ngood+pdata->nsuper,pdata->nbad,pdata->nrestored);
       ;
     };
   };
   // Page processed.
   pdata->step=0;
 };
+
+
 
 // Extracts data from the bitmap in small slices. To start decoding, pass
 // bitmap to Startbitmapdecoding().
@@ -912,10 +976,11 @@ void Nextdataprocessingstep(t_procdata *pdata) {
     case 0:                            // Idle data
       return;
     case 1:                            // Remove previous images
-      SetWindowPos(hwmain,HWND_TOP,0,0,0,0,
+      /*SetWindowPos(hwmain,HWND_TOP,0,0,0,0,
         SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
       Initqualitymap(0,0);
       Displayblockimage(NULL,0,0,0,NULL);
+      *///GUI
       pdata->step++;
       break;
     case 2:                            // Determine grid size
@@ -943,50 +1008,56 @@ void Nextdataprocessingstep(t_procdata *pdata) {
       break;
     default: break;                    // Internal error
   };
-  if (pdata->step==0) Updatebuttons(); // Right or wrong, decoding finished
+  //if (pdata->step==0) Updatebuttons(); // Right or wrong, decoding finished
 };
+
+
 
 // Frees resources allocated by pdata.
 void Freeprocdata(t_procdata *pdata) {
   // Free data.
   if (pdata->data!=NULL) {
-    GlobalFree((HGLOBAL)pdata->data);
+    free(pdata->data);
     pdata->data=NULL; };
   // Free allocated buffers.
   if (pdata->buf1!=NULL) {
-    GlobalFree((HGLOBAL)pdata->buf1);
+    free(pdata->buf1);
     pdata->buf1=NULL; };
   if (pdata->buf2!=NULL) {
-    GlobalFree((HGLOBAL)pdata->buf2);
+    free(pdata->buf2);
     pdata->buf2=NULL; };
   if (pdata->bufx!=NULL) {
-    GlobalFree((HGLOBAL)pdata->bufx);
+    free(pdata->bufx);
     pdata->bufx=NULL; };
   if (pdata->bufy!=NULL) {
-    GlobalFree((HGLOBAL)pdata->bufy);
+    free(pdata->bufy);
     pdata->bufy=NULL; };
   if (pdata->blocklist!=NULL) {
-    GlobalFree((HGLOBAL)pdata->blocklist);
+    free(pdata->blocklist);
     pdata->blocklist=NULL;
   };
 };
+
+
 
 // Starts decoding of the new bitmap. If previous decoding is still running,
 // it will be stopped and all intermediate results will be discarded.
 void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
   // Free resources allocated for the previous bitmap. User may want to
   // browse bitmap while and after it is processed.
-  Freeprocdata(pdata);
+  //Freeprocdata(pdata);
   memset(pdata,0,sizeof(t_procdata));
   pdata->data=data;
   pdata->sizex=sizex;
   pdata->sizey=sizey;
   pdata->blockborder=0.0;              // Autoselect
   pdata->step=1;
-  if (bestquality)
-    pdata->mode|=M_BEST;
-  Updatebuttons();
+  //if (bestquality)
+  //  pdata->mode|=M_BEST;
+  //Updatebuttons(); //GUI
 };
+
+
 
 // Stops bitmap decoding. Data decoded so far is discarded, but resources
 // (especially, bitmap) remain in memory.
@@ -994,5 +1065,241 @@ void Stopbitmapdecoding(t_procdata *pdata) {
   if (pdata->step!=0) {
     pdata->step=0;
   };
+};
+
+
+
+// Opens and decodes bitmap. Returns 0 on success and -1 on error.
+int Decodebitmap(const std::string &fileName) {
+  int i,size;
+  uchar *data,buf[sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER)];
+  FILE *f;
+  BITMAPFILEHEADER *pbfh;
+  BITMAPINFOHEADER *pbih;
+
+  //HCURSOR prevcursor; //GUI
+  // Ask for file name.
+  //!!! REQUIRE input bmp exists before this can be run
+  //if (path==NULL || path[0]=='\0') {
+  /*if (Selectinbmp()!=0) {
+    return -1;
+  }
+  else { */
+  //strncpy(inbmp,path,sizeof(inbmp));
+  //inbmp[sizeof(inbmp)-1]='\0'; 
+  //}
+  //fnsplit(inbmp,NULL,NULL,fil,ext);
+  //sprintf(s,"Reading %s%s...",fil,ext);
+  //Message(s,0);
+  //Updatebuttons(); //GUI
+  // Open file and verify that this is the valid bitmap of known type.
+  f=fopen(fileName.c_str(),"rb");
+  if (f==NULL) {                       // Unable to open file
+    std::ostringstream oss;
+    oss << "Unable to open " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1; 
+  };
+  // Reading 100-MB bitmap may take many seconds. Let's inform user by changing
+  // mouse pointer.
+  //prevcursor=SetCursor(LoadCursor(NULL,IDC_WAIT));
+  i=fread(buf,1,sizeof(buf),f);
+  //SetCursor(prevcursor);
+  if (i!=sizeof(buf)) {                // Unable to read file
+    std::ostringstream oss;
+    oss << "Unable to read " << fileName << std::endl;
+    Reporterror(oss.str());
+    fclose(f); 
+    return -1; 
+  };
+#ifdef _WIN32
+  pbfh=(BITMAPFILEHEADER *)buf;
+  pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
+#elif __linux__
+  //Padding different in GCC, cannot overlay directly
+  //Use smaller types and bitwise ops to get the data
+  OverlayBitmapFileHeader *temp;
+  temp=(OverlayBitmapFileHeader *)buf;
+
+  pbfh = (BITMAPFILEHEADER*)malloc(sizeof(BITMAPFILEHEADER));
+  pbfh->bfType       = temp->bfType;
+  pbfh->bfSize       = temp->bfSize3 << 24;
+  pbfh->bfSize      |= temp->bfSize2 << 16;
+  pbfh->bfSize      |= temp->bfSize1 << 8;
+  pbfh->bfSize      |= temp->bfSize0;
+  pbfh->bfReserved1  = temp->bfReserved1;
+  pbfh->bfReserved2  = temp->bfReserved2;
+  pbfh->bfOffBits    = temp->bfOffBits3 << 24;
+  pbfh->bfOffBits   |= temp->bfOffBits2 << 16;
+  pbfh->bfOffBits   |= temp->bfOffBits1 << 8;
+  pbfh->bfOffBits   |= temp->bfOffBits0;
+  
+  pbih=(BITMAPINFOHEADER *)(buf+sizeof(OverlayBitmapFileHeader));
+#endif
+
+    //std::cout //<< pbfh << "\n"
+    //     << "bfType: " << pbfh -> bfType << ", " << &pbfh -> bfType <<"\n"
+    //     << "bfSize: " << pbfh -> bfSize << ", " << &pbfh -> bfSize <<"\n"
+    //     << pbfh -> bfReserved1 << ", " << &pbfh -> bfReserved1 <<"\n"
+    //     << pbfh -> bfReserved2 << ", " << &pbfh -> bfReserved2 <<"\n"
+    //     << "bfOffBits : " << pbfh -> bfOffBits << ", " << &pbfh -> bfOffBits <<"\n"
+    //     << std::endl;
+    //std::cout //<< pbih << "\n"
+    //     << "biSize: " << pbih -> biSize << ", " << &pbih -> biSize << "\n"
+    //     << "biWidth: " << pbih -> biWidth << ", " << &pbih -> biWidth << "\n"
+    //     << "biHeight: " << pbih -> biHeight << ", " << &pbih -> biHeight << "\n"
+    //     << "biPlanes: " << pbih -> biPlanes << ", " << &pbih -> biPlanes << "\n"
+    //     << "biBitCount: " << pbih -> biBitCount << ", " << &pbih -> biBitCount << "\n"
+    //     << "biCompression: " << pbih -> biCompression << ", " << &pbih -> biCompression << "\n"
+    //     << "biSizeImage: " << pbih -> biSizeImage << ", " << &pbih -> biSizeImage << "\n"
+    //     << "biXPelsPerMeter: " << pbih -> biXPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+    //     << "biYPelsPerMeter: " << pbih -> biYPelsPerMeter << ", " << &pbih -> biXPelsPerMeter << "\n"
+    //     << "biClrUsed: " << pbih -> biClrUsed << ", " << &pbih -> biClrUsed << "\n"
+    //     << "biClrImportant: " << pbih -> biClrImportant << ", " << &pbih -> biClrImportant << "\n"
+    //     << std::endl;
+
+  if ( pbfh->bfType!=19778 ) {//First two bytes must be 'BM' (19778)
+    std::ostringstream oss;
+    oss << "Input file is not a bitmap: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if ( pbih->biCompression!=BI_RGB ) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Must be uncompressed (not JPEG, PNG, or RLE) and not BITFIELDS-based: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  //std::cout << "Color bits per pixel: " << pbih->biBitCount << std::endl;
+  if ( pbih->biBitCount!=8 && pbih->biBitCount!=24) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Must be 8-bit or 24-bit color: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  //std::cout << "# of colors (if 24-bit): " << pbih->biClrUsed << std::endl;
+  if ( pbih->biBitCount==24 && pbih->biClrUsed!=0) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: 24-bit color bitmaps required to specify number of colors used: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if (  pbih->biWidth<128 || pbih->biWidth>32768 ||
+    pbih->biHeight<128 || pbih->biHeight>32768
+  ) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: Height and width must be between 128 and 32768: " << fileName << std::endl;
+    Reporterror(oss.str());
+    return -1;
+  }
+  if ( pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ) {
+    std::ostringstream oss;
+    oss << "Unsupported Bitmap: size mismatch or invalid planes value (internal error): " << fileName << std::endl;
+    Reporterror(oss.str());
+    fclose(f); 
+    return -1; 
+  };
+  // Allocate buffer and read file.
+  fseek(f,0,SEEK_END);
+  size=ftell(f)-sizeof(OverlayBitmapFileHeader);
+  data=(uchar *)malloc(size);
+  if (data==NULL) {                    // Unable to allocate memory
+    Reporterror("Low memory");
+    fclose(f); 
+    return -1; 
+  };
+  fseek(f,sizeof(OverlayBitmapFileHeader),SEEK_SET);
+  i=fread(data,1,size,f);
+  fclose(f);
+  if (i!=size) {                       // Unable to read bitmap
+    std::ostringstream oss;
+    oss << "Unable to read: " << fileName << std::endl;
+    Reporterror(oss.str());
+    free(data);
+    return -1; 
+  };
+  // Process bitmap.
+  if ( ProcessDIB(data,pbfh->bfOffBits-sizeof(OverlayBitmapFileHeader) == 0 )) {
+    std::cerr << "Error: Processing the DIB has failed" << std::endl;
+    return -1;
+  }
+  free(data);
+  return 0;
+};
+
+
+
+// Processes data from the scanner.
+int ProcessDIB(void *hdata,int offset) {
+  int i,j,sizex,sizey,ncolor;
+  uchar scale[256],*data,*pdata,*pbits;
+  BITMAPINFO *pdib;
+  //pdib=(BITMAPINFO *)GlobalLock(hdata);
+  pdib =(BITMAPINFO *)hdata;
+  if (pdib==NULL) {
+    std::cerr << "Invalid pointer to DIB data (internal error)" << std::endl;
+    return -1;                         
+  }
+  // Check that bitmap is more or less valid.
+  if (pdib->bmiHeader.biSize!=sizeof(BITMAPINFOHEADER) ||
+    pdib->bmiHeader.biPlanes!=1 ||
+    (pdib->bmiHeader.biBitCount!=8 && pdib->bmiHeader.biBitCount!=24) ||
+    (pdib->bmiHeader.biBitCount==24 && pdib->bmiHeader.biClrUsed!=0) ||
+    pdib->bmiHeader.biCompression!=BI_RGB ||
+    pdib->bmiHeader.biWidth<128 || pdib->bmiHeader.biWidth>32768 ||
+    pdib->bmiHeader.biHeight<128 || pdib->bmiHeader.biHeight>32768
+  ) {
+    //GlobalUnlock(hdata);
+    std::cerr << "Invalid header information passed to ProcessDIB (internal error" << std::endl;
+    return -1;
+  };                      // Not a known bitmap!
+  sizex=pdib->bmiHeader.biWidth;
+  sizey=pdib->bmiHeader.biHeight;
+  ncolor=pdib->bmiHeader.biClrUsed;
+  // Convert bitmap to 8-bit grayscale. Note that scan lines are DWORD-aligned.
+  data=(uchar *)malloc(sizex*sizey);
+  if (data==NULL) {
+    //GlobalUnlock(hdata);
+    std::cerr << "Not enough memory to convert DIB to grayscale" << std::endl;
+    return -1; 
+  };
+  if (pdib->bmiHeader.biBitCount==8) {
+    // 8-bit bitmap with palette.
+    if (ncolor>0) {
+      for (i=0; i<ncolor; i++) {
+        scale[i]=(uchar)((pdib->bmiColors[i].rgbBlue+
+        pdib->bmiColors[i].rgbGreen+pdib->bmiColors[i].rgbRed)/3);
+      }; }
+    else {
+      for (i=0; i<256; i++) scale[i]=(uchar)i; };
+    if (offset==0)
+      offset=sizeof(BITMAPINFOHEADER)+ncolor*sizeof(RGBQUAD);
+    pdata=data;
+    for (j=0; j<sizey; j++) {
+      offset=(offset+3) & 0xFFFFFFFC;
+      pbits=((uchar *)(pdib))+offset;
+      for (i=0; i<sizex; i++) {
+        *pdata++=scale[*pbits++]; };
+      offset+=sizex;
+    }; }
+  else {
+    // 24-bit bitmap without palette.
+    if (offset==0)
+      offset=sizeof(BITMAPINFOHEADER)+ncolor*sizeof(RGBQUAD);
+    pdata=data;
+    for (j=0; j<sizey; j++) {
+      offset=(offset+3) & 0xFFFFFFFC;
+      pbits=((uchar *)(pdib))+offset;
+      for (i=0; i<sizex; i++) {
+        *pdata++=(uchar)((pbits[0]+pbits[1]+pbits[2])/3);
+        pbits+=3; };
+      offset+=sizex*3;
+    };
+  };
+  // Decode bitmap. This is what we are for here.
+  Startbitmapdecoding(&procdata,data,sizex,sizey);
+  // Free original bitmap and report success.
+  //GlobalUnlock(hdata);
+  return 0;
 };
 

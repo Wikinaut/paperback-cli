@@ -15,15 +15,12 @@
  *
  * =====================================================================================
  */
-#include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <string>
 #include "cxxopts.hpp"
-#include "Decoder.h"
-#include "Global.h"
-#include "Printer.h"
-#include "Fileproc.h"
+#include "paperbak.h"
+#include "Resource.h"
 
 using namespace std;
 
@@ -145,12 +142,8 @@ int main(int argc, char ** argv) {
     redundancy = options["redundancy"].as<int>();
     printheader = ( ! options["no-header"].as<int>() );
     printborder = options["border"].as<int>(); 
-
     // decode = !encode
     bool isEncode = options["mode"].as<string>().compare("encode") == 0;
-
-    // around line 507 in original
-
 
     // externs (also have matching values in printdata and/or procdata)
     std::string infile = options["input"].as<string>();
@@ -158,54 +151,19 @@ int main(int argc, char ** argv) {
 
     if( isEncode ) {
       // begin the process to write the bitmap,
-      // allocate memory for printdata
-      // sets printdata.infile and printdata.outbmp
       // if second arg is not NULL, writes a bmp to outfile
-      t_printdata printdata = Printfile( infile, outfile );
-      // Get more attributes
-      // Opens buffer for arbitrary data
-      if (Preparefiletoprint( &printdata )) {
-          cerr << "Could not prepare file for printing" << endl;
-          return -1;
-      }
-      //Get more attributes
-      // Construct superblock
-      if ( Initializeprinting( &printdata, WIDTH_A4, HEIGHT_A4 ) == 0 ) {
-        //Create BMPs until all data has been written to BMP
-        int currStep = printdata.step;
-        while ( printdata.step == currStep ) {
-          Printnextpage( &printdata );
-        }
+      t_printdata printdata = Printfile( infile.c_str(), outfile.c_str() );
+        while (printdata.step != 0) {
+          Nextdataprintingstep (&printdata);
       }
     }
     else {
-      // Process 1 or more bitmaps
-      //!!! add loop after a single page decodes successfully
-      
-      // Get attributes of the inputted bitmap
-      if ( Decodebitmap(infile.c_str())             == 0 
-           && Getgridposition(&procdata)            == 0 
-           && Getgridintensity(&procdata)           == 0 
-           && Getxangle(&procdata)                  == 0 
-           && Getyangle(&procdata)                  == 0 
-        ) {
-        // Set internal options and allocate memory for decoding
-        Preparefordecoding(&procdata);
-        if ( Startnextpage(&(procdata.superblock)) == 0 ) {
-          // Decode block by block until step is set to 0
-          int currStep = procdata.step;
-          while ( procdata.step == currStep ) {
-            ///!!! DEBUG
-            print_procdata(procdata);
-            Decodenextblock(&procdata);
+      if (Decodebitmap (infile.c_str()) == 0) {
+          while (procdata.step != 0) {
+            Nextdataprocessingstep (&procdata);
           }
-          // Passes converted data to File Processor and frees recources
-          Finishdecoding(&procdata);
-        }
       }
     }
-
-    Freeprocdata(&procdata);
   } 
   catch (const cxxopts::OptionException& e) {
     cerr << "error parsing options: " << e.what() << endl;
