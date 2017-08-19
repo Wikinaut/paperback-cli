@@ -206,28 +206,30 @@ static void Preparefiletoprint(t_printdata *print)
   };
 #elif __linux__
   // Get file attributes
-  if ( stat(print->infile.c_str(), &(print->attributes)) != 0 ) {
+  struct stat fileInfo;
+  if ( stat(print->infile, &fileInfo) != 0 ) {
     Reporterror("Unable to get input file attributes");
     Stopprinting(print);
-    return -1;
+    return;
   }
+  print->attributes = (uint32_t)fileInfo.st_mode;
   // Get time of last file modification.
-  print->modified = print->attributes.st_mtime;
+  print->modified = fileInfo.st_mtime;
   // Get original (uncompressed) file size.
-  print->origsize = print->attributes.st_size;
+  print->origsize = fileInfo.st_size;
   if (print->origsize==0 || print->origsize>MAXSIZE) {
     Reporterror("Invalid file size");
     Stopprinting(print);
-    return -1;
+    return;
   }
 #endif
  
  // Open input file.
-  print->hfile = fopen( print->infile.c_str(), "rb" );
+  print->hfile = fopen( print->infile, "rb" );
   if (print->hfile == NULL) {
     Reporterror("Unable to open file");
     Stopprinting(print);
-    return -1; 
+    return; 
   }
 
   print->readsize=0;
@@ -313,7 +315,8 @@ static void Readandcompress(t_printdata *print) {
     if (print->readsize<print->origsize && print->bzstream.avail_out==0) {
       BZ2_bzCompressEnd(&print->bzstream);
       print->compression=0;
-      SetFilePointer(print->hfile,0,NULL,FILE_BEGIN);
+      //SetFilePointer(print->hfile,0,NULL,FILE_BEGIN);
+      rewind(print->hfile);
       print->readsize=0;
       return;
     }; }
@@ -450,7 +453,7 @@ static void Initializeprinting(t_printdata *print) {
   // parameters. I do not enforce high quality or high resolution - the user is
   // the king (well, a sort of).
   if (print->outbmp[0]=='\0') {
-    ReportError("Print job creation is disabled");
+    Reporterror("Print job creation is disabled");
     //// Open standard Print dialog box.
     ////memset(&printdlg,0,sizeof(PRINTDLG));
     //printdlg.lStructSize=sizeof(PRINTDLG);
@@ -540,7 +543,7 @@ static void Initializeprinting(t_printdata *print) {
   // I treat printing to bitmap as a debugging feature and set some more or
   // less sound defaults.
   else {
-    print->dc=NULL;
+    //print->dc=NULL;
     print->frompage=0;
     print->topage=9999;
     if (resx==0 || resy==0) {
@@ -582,6 +585,7 @@ static void Initializeprinting(t_printdata *print) {
   //  print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; 
   //}
   //else {
+  //FIXME should left border also be ppix/2
   print->borderleft=print->ppix;
   print->borderright=print->ppix/2;
   print->bordertop=print->ppiy/2;
@@ -715,6 +719,7 @@ static void Printnextpage(t_printdata *print) {
   uint32_t u,size,pagesize,offset;
   t_data block,cksum;
   //HANDLE hbmpfile;
+  FILE * hbmpfile;
   BITMAPFILEHEADER bmfh;
   BITMAPINFO *pbmi;
   // Calculate offset of this page in data.
@@ -745,23 +750,14 @@ static void Printnextpage(t_printdata *print) {
     bits=print->dibbits;
   else
     bits=print->drawbits;
-  // Start new page.
-  if (print->outbmp[0]=='\0') {
-    success=StartPage(print->dc);
-    if (success<=0) {
-      Reporterror("Unable to print");
-      Stopprinting(print);
-      return;
-    };
-  };
   // Check if we can reduce the vertical size of the table on the last page.
   // To assure reliable orientation, I request at least 3 rows.
-  l=min(size-offset,pagesize);
+  l=std::min(size-offset,pagesize);
   n=(l+NDATA-1)/NDATA;                 // Number of pure data blocks on page
   nstring=                             // Number of groups (length of string)
     (n+redundancy-1)/redundancy;
   n=(nstring+1)*(redundancy+1)+1;      // Total number of blocks to print
-  n=max((n+nx-1)/nx,3);                // Number of rows (at least 3)
+  n=std::max((n+nx-1)/nx,3);                // Number of rows (at least 3)
   if (ny>n) ny=n;
   height=ny*(NDOT+3)*dy+py+2*border;
   // Initialize bitmap to all white.
@@ -772,7 +768,8 @@ static void Printnextpage(t_printdata *print) {
       basex=i*(NDOT+3)*dx+border;
       for (j=0; j<ny*(NDOT+3)*dy+py+2*border; j++,basex+=width) {
         for (k=0; k<px; k++) bits[basex+k]=0;
-      }; }
+      }; 
+    }
     else {
       basex=i*(NDOT+3)*dx+width*border+border;
       for (j=0; j<ny*(NDOT+3)*dy; j++,basex+=width) {
@@ -785,11 +782,12 @@ static void Printnextpage(t_printdata *print) {
     if (print->printborder) {
       for (k=0; k<py; k++) {
         memset(bits+(j*(NDOT+3)*dy+k+border)*width,0,width);
-      }; }
+      }; 
+    }
     else {
       for (k=0; k<py; k++) {
         memset(bits+(j*(NDOT+3)*dy+k+border)*width+border,0,
-        nx*(NDOT+3)*dx+px);
+            nx*(NDOT+3)*dx+px);
       };
     };
   };
@@ -797,7 +795,8 @@ static void Printnextpage(t_printdata *print) {
   if (print->printborder) {
     for (j=-1; j<=ny; j++) {
       Fillblock(-1,j,bits,width,height,border,nx,ny,dx,dy,px,py,black);
-      Fillblock(nx,j,bits,width,height,border,nx,ny,dx,dy,px,py,black); };
+      Fillblock(nx,j,bits,width,height,border,nx,ny,dx,dy,px,py,black); 
+    };
     for (i=0; i<nx; i++) {
       Fillblock(i,-1,bits,width,height,border,nx,ny,dx,dy,px,py,black);
       Fillblock(i,ny,bits,width,height,border,nx,ny,dx,dy,px,py,black);
@@ -814,7 +813,8 @@ static void Printnextpage(t_printdata *print) {
     if (nstring+1>=nx)
       k+=(nx/(redundancy+1)*j-k%nx+nx)%nx;
     Drawblock(k,(t_data *)&print->superdata,
-    bits,width,height,border,nx,ny,dx,dy,px,py,black); };
+        bits,width,height,border,nx,ny,dx,dy,px,py,black); 
+  };
   // Now the most important part - encode and draw data, group by group!
   for (i=0; i<nstring; i++) {
     // Prepare redundancy block.
@@ -827,7 +827,8 @@ static void Printnextpage(t_printdata *print) {
       if (offset<size) {
         l=size-offset;
         if (l>NDATA) l=NDATA;
-        memcpy(block.data,print->buf+offset,l); }
+        memcpy(block.data,print->buf+offset,l); 
+      }
       else
         l=0;
       // Bytes beyond the data are set to 0.
@@ -855,53 +856,60 @@ static void Printnextpage(t_printdata *print) {
       k+=i+1;
     else {
       rot=(nx/(redundancy+1)*redundancy-k%nx+nx)%nx;
-      k+=(i+1+rot)%(nstring+1); };
+      k+=(i+1+rot)%(nstring+1); 
+    };
     Drawblock(k,&cksum,bits,width,height,border,nx,ny,dx,dy,px,py,black);
   };
   // Print superblock in all remaining cells.
   for (k=(nstring+1)*(redundancy+1); k<nx*ny; k++) {
     Drawblock(k,(t_data *)&print->superdata,
-    bits,width,height,border,nx,ny,dx,dy,px,py,black); };
+        bits,width,height,border,nx,ny,dx,dy,px,py,black); 
+  };
   // When printing to paper, print title at the top of the page and info text
   // at the bottom.
   if (print->outbmp[0]=='\0') {
-    if (print->printheader) {
-      // Print title at the top of the page.
-      Filetimetotext(&print->modified,ts,sizeof(ts));
-      n=sprintf(s,"%.64s [%s, %i bytes] - page %i of %i",
-        print->superdata.name,ts,print->origsize,print->frompage+1,npages);
-      SelectObject(print->dc,print->hfont6);
-      TextOut(print->dc,print->borderleft+width/2,print->bordertop,s,n);
-      // Print info at the bottom of the page.
-      n=sprintf(s,"Recommended scanner resolution %i dots per inch",
-        max(print->ppix*3/dx,print->ppiy*3/dy));
-      SelectObject(print->dc,print->hfont10);
-      TextOut(print->dc,
-        print->borderleft+width/2,
-        print->bordertop+print->extratop+height+print->ppiy/24,s,n);
-      ;
-    };
-    // Transfer bitmap to paper and send page to printer.
-    SetDIBitsToDevice(print->dc,
-      print->borderleft,print->bordertop+print->extratop,
-      width,height,0,0,0,height,bits,
-      (BITMAPINFO *)print->bmi,DIB_RGB_COLORS);
-    EndPage(print->dc); }
+    ////FIXME add header/footer to bmp output
+    //if (print->printheader) {
+    //  // Print title at the top of the page.
+    //  Filetimetotext(&print->modified,ts,sizeof(ts));
+    //  n=sprintf(s,"%.64s [%s, %i bytes] - page %i of %i",
+    //    print->superdata.name,ts,print->origsize,print->frompage+1,npages);
+    //  SelectObject(print->dc,print->hfont6);
+    //  TextOut(print->dc,print->borderleft+width/2,print->bordertop,s,n);
+    //  // Print info at the bottom of the page.
+    //  n=sprintf(s,"Recommended scanner resolution %i dots per inch",
+    //    max(print->ppix*3/dx,print->ppiy*3/dy));
+    //  SelectObject(print->dc,print->hfont10);
+    //  TextOut(print->dc,
+    //    print->borderleft+width/2,
+    //    print->bordertop+print->extratop+height+print->ppiy/24,s,n);
+    //  ;
+    //};
+    //// Transfer bitmap to paper and send page to printer.
+    //SetDIBitsToDevice(print->dc,
+    //  print->borderleft,print->bordertop+print->extratop,
+    //  width,height,0,0,0,height,bits,
+    //  (BITMAPINFO *)print->bmi,DIB_RGB_COLORS);
+    //EndPage(print->dc); 
+  }
   else {
     // Save bitmap to file. First, get file name.
-    fnsplit(print->outbmp,drv,dir,nam,ext);
-    if (ext[0]=='\0') strcpy(ext,".bmp");
-    if (npages>1)
-      sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,print->frompage+1,ext);
-    else
-      sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
+    //fnsplit(print->outbmp,drv,dir,nam,ext, MAXPATH);
+    //if (ext[0]=='\0') strcpy(ext,".bmp");
+    //if (npages>1)
+    //  sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,print->frompage+1,ext);
+    //else
+    //  sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
     // Create bitmap file.
-    hbmpfile=CreateFile(path,GENERIC_WRITE,0,NULL,
-      CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-    if (hbmpfile==INVALID_HANDLE_VALUE) {
+    //hbmpfile=CreateFile(path,GENERIC_WRITE,0,NULL,
+    //  CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+    hbmpfile = fopen (print->outbmp, "wb");
+    //if (hbmpfile==INVALID_HANDLE_VALUE) //
+    if (hbmpfile == NULL) {
       Reporterror("Unable to create bitmap file");
       Stopprinting(print);
-      return; };
+      return; 
+    };
     // Create and save bitmap file header.
     success=1;
     n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
@@ -909,8 +917,11 @@ static void Printnextpage(t_printdata *print) {
     bmfh.bfSize=sizeof(bmfh)+n+width*height;
     bmfh.bfReserved1=bmfh.bfReserved2=0;
     bmfh.bfOffBits=sizeof(bmfh)+n;
-    if (WriteFile(hbmpfile,&bmfh,sizeof(bmfh),&u,NULL)==0 || u!=sizeof(bmfh))
+    u = fwrite (&bmfh, sizeof(char), sizeof(bmfh), hbmpfile);
+    //if (WriteFile(hbmpfile,&bmfh,sizeof(bmfh),&u,NULL)==0 || u!=sizeof(bmfh))
+    if (u != sizeof(bmfh)) {
       success=0;
+    }
     // Update and save bitmap info header and palette.
     if (success) {
       pbmi=(BITMAPINFO *)print->bmi;
@@ -918,24 +929,32 @@ static void Printnextpage(t_printdata *print) {
       pbmi->bmiHeader.biHeight=height;
       pbmi->bmiHeader.biXPelsPerMeter=(print->ppix*10000)/254;
       pbmi->bmiHeader.biYPelsPerMeter=(print->ppiy*10000)/254;
-      if (WriteFile(hbmpfile,pbmi,n,&u,NULL)==0 || u!=(uint32_t)n) success=0; };
-    // Save bitmap data.
-    if (success) {
-      if (WriteFile(hbmpfile,bits,width*height,&u,NULL)==0 ||
-        u!=(uint32_t)(width*height))
-        success=0;
-      ;  
+      u = fwrite (pbmi, sizeof(char), n, hbmpfile);
+      if (u != (uint32_t)n ) {
+        success = 0;
+      }
+      //if (WriteFile(hbmpfile,pbmi,n,&u,NULL)==0 || u!=(uint32_t)n) 
+      //  success=0;
+      // Save bitmap data.
+      if (success) {
+        u = fwrite (bits, sizeof(char), width*height, hbmpfile);
+        //if (WriteFile(hbmpfile,bits,width*height,&u,NULL)==0 ||
+        //  u!=(uint32_t)(width*height))
+        if (u != (ulong)(width*height))
+          success=0;
+      };
+      fclose(hbmpfile);
+      //CloseHandle(hbmpfile);
+      if (success==0) {
+        Reporterror("Unable to save bitmap");
+        Stopprinting(print);
+        return;
+      };
     };
-    CloseHandle(hbmpfile);
-    if (success==0) {
-      Reporterror("Unable to save bitmap");
-      Stopprinting(print);
-      return;
-    };
+    // Page printed, proceed with next.
+    print->frompage++;
   };
-  // Page printed, proceed with next.
-  print->frompage++;
-};
+}
 
 
 // Prints data or saves it to bitmaps page by page.
@@ -970,7 +989,7 @@ void Nextdataprintingstep(t_printdata *print) {
       print->step=0;
     default: break;                    // Internal error
   };
-  if (print->step==0) Updatebuttons(); // Right or wrong, decoding finished
+  //if (print->step==0) Updatebuttons(); // Right or wrong, decoding finished
 };
 
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
