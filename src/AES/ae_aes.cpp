@@ -20,13 +20,16 @@
 
 // Modifications by Oleh Yuschuk:
 //   test mode and on-the-fly tables removed;
-//   uint8 replaced by uchar; uint32 replaced by ulong.
+//   uint8 replaced by uchar; uint32 replaced by ulong
+
+// Modifications by Surkeh
+//   ulong changed back to uint32_t
 
 #include "aes.h"
 
 /* forward S-box */
 
-static const ulong FSb[256] =
+static const uint32_t FSb[256] =
 {
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5,
     0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -132,26 +135,26 @@ static const ulong FSb[256] =
     V(7B,B0,B0,CB), V(A8,54,54,FC), V(6D,BB,BB,D6), V(2C,16,16,3A)
 
 #define V(a,b,c,d) 0x##a##b##c##d
-static const ulong FT0[256] = { FT };
+static const uint32_t FT0[256] = { FT };
 #undef V
 
 #define V(a,b,c,d) 0x##d##a##b##c
-static const ulong FT1[256] = { FT };
+static const uint32_t FT1[256] = { FT };
 #undef V
 
 #define V(a,b,c,d) 0x##c##d##a##b
-static const ulong FT2[256] = { FT };
+static const uint32_t FT2[256] = { FT };
 #undef V
 
 #define V(a,b,c,d) 0x##b##c##d##a
-static const ulong FT3[256] = { FT };
+static const uint32_t FT3[256] = { FT };
 #undef V
 
 #undef FT
 
 /* reverse S-box */
 
-static const ulong RSb[256] =
+static const uint32_t RSb[256] =
 {
     0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38,
     0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
@@ -257,26 +260,26 @@ static const ulong RSb[256] =
     V(7B,CB,84,61), V(D5,32,B6,70), V(48,6C,5C,74), V(D0,B8,57,42)
 
 #define V(a,b,c,d) 0x##a##b##c##d
-static const ulong RT0[256] = { RT };
+static const uint32_t RT0[256] = { RT };
 #undef V
 
 #define V(a,b,c,d) 0x##d##a##b##c
-static const ulong RT1[256] = { RT };
+static const uint32_t RT1[256] = { RT };
 #undef V
 
 #define V(a,b,c,d) 0x##c##d##a##b
-static const ulong RT2[256] = { RT };
+static const uint32_t RT2[256] = { RT };
 #undef V
 
 #define V(a,b,c,d) 0x##b##c##d##a
-static const ulong RT3[256] = { RT };
+static const uint32_t RT3[256] = { RT };
 #undef V
 
 #undef RT
 
 /* round constants */
 
-static const ulong RCON[10] =
+static const uint32_t RCON[10] =
 {
     0x01000000, 0x02000000, 0x04000000, 0x08000000,
     0x10000000, 0x20000000, 0x40000000, 0x80000000,
@@ -287,10 +290,10 @@ static const ulong RCON[10] =
 
 #define GET_UINT32(n,b,i)                       \
 {                                               \
-    (n) = ( (ulong) (b)[(i)    ] << 24 )       \
-        | ( (ulong) (b)[(i) + 1] << 16 )       \
-        | ( (ulong) (b)[(i) + 2] <<  8 )       \
-        | ( (ulong) (b)[(i) + 3]       );      \
+    (n) = ( (uint32_t) (b)[(i)    ] << 24 )       \
+        | ( (uint32_t) (b)[(i) + 1] << 16 )       \
+        | ( (uint32_t) (b)[(i) + 2] <<  8 )       \
+        | ( (uint32_t) (b)[(i) + 3]       );      \
 }
 
 #define PUT_UINT32(n,b,i)                       \
@@ -305,17 +308,17 @@ static const ulong RCON[10] =
 
 int KT_init = 1;
 
-ulong KT0[256];
-ulong KT1[256];
-ulong KT2[256];
-ulong KT3[256];
+uint32_t KT0[256];
+uint32_t KT1[256];
+uint32_t KT2[256];
+uint32_t KT3[256];
 
 /* AES key scheduling routine */
 
 int aes_set_key( aes_context *ctx, uchar *key, int nbits )
 {
     int i;
-    ulong *RK, *SK;
+    uint32_t *RK, *SK;
 
     switch( nbits )
     {
@@ -458,7 +461,7 @@ int aes_set_key( aes_context *ctx, uchar *key, int nbits )
 
 void aes_encrypt( aes_context *ctx, uchar input[16], uchar output[16] )
 {
-    ulong *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
+    uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 
     RK = ctx->erk;
 
@@ -548,7 +551,7 @@ void aes_encrypt( aes_context *ctx, uchar input[16], uchar output[16] )
 
 void aes_decrypt( aes_context *ctx, uchar input[16], uchar output[16] )
 {
-    ulong *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
+    uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 
     RK = ctx->drk;
 

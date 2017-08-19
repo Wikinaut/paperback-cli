@@ -30,7 +30,11 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#elif __linux__
+#include <sys/stat.h>
+#include "Bitmap.h"
 #endif
+#include <algorithm>
 #include <stdlib.h>
 #include "bzlib.h"
 #include "aes.h"
@@ -42,7 +46,6 @@
 
 
 
-
 // Service function, puts block of data to bitmap as a grid of 32x32 dots in
 // the position with given index. Bitmap is treated as a continuous line of
 // cells, where end of the line is connected to the start of the next line.
@@ -50,19 +53,19 @@ static void Drawblock(int index,t_data *block,uchar *bits,int width,int height,
   int border,int nx,int ny,int dx,int dy,int px,int py,int black
 ) {
   int i,j,x,y,m,n;
-  ulong t;
+  uint32_t t;
   // Convert cell index into the X-Y bitmap coordinates.
   x=(index%nx)*(NDOT+3)*dx+2*dx+border;
   y=(index/nx)*(NDOT+3)*dy+2*dy+border;
   bits+=(height-y-1)*width+x;
   // Add CRC.
-  block->crc=(ushort)(Crc16((uchar *)block,NDATA+sizeof(ulong))^0x55AA);
+  block->crc=(ushort)(Crc16((uchar *)block,NDATA+sizeof(uint32_t))^0x55AA);
   // Add error correction code.
   Encode8((uchar *)block,block->ecc,127);
   // Print block. To increase the reliability of empty or half-empty blocks
   // and close-to-0 addresses, I XOR all data with 55 or AA.
   for (j=0; j<32; j++) {
-    t=((ulong *)block)[j];
+    t=((uint32_t *)block)[j];
     if ((j & 1)==0)
       t^=0x55555555;
     else
@@ -91,7 +94,7 @@ static void Fillblock(int blockx,int blocky,uchar *bits,int width,int height,
   int border,int nx,int ny,int dx,int dy,int px,int py,int black
 ) {
   int i,j,x0,y0,x,y,m,n;
-  ulong t;
+  uint32_t t;
   // Convert cell coordinates into the X-Y bitmap coordinates.
   x0=blockx*(NDOT+3)*dx+2*dx+border;
   y0=blocky*(NDOT+3)*dy+2*dy+border;
@@ -137,15 +140,22 @@ void Stopprinting(t_printdata *print) {
     fclose(print->hfile);
   // Deallocate memory.
   if (print->buf!=NULL) {
-    free(print->buf); print->buf=NULL; };
+    free(print->buf); 
+    print->buf=NULL; 
+  };
   if (print->readbuf!=NULL) {
-    free(print->readbuf); print->readbuf=NULL; };
+    free(print->readbuf); 
+    print->readbuf=NULL;
+  };
   if (print->drawbits!=NULL) {
-    free(print->drawbits); print->drawbits=NULL; };
+    free(print->drawbits); 
+    print->drawbits=NULL; 
+  };
   // Free other resources.
   // FIXME is this needed?
   if (print->startdoc!=0) {
     print->startdoc = 0;
+  };
   //  EndDoc(print->dc); print->startdoc=0; };
   //if (print->dc!=NULL) {
   //  DeleteDC(print->dc); print->dc=NULL; };
@@ -166,32 +176,34 @@ void Stopprinting(t_printdata *print) {
 // Opens input file and allocates memory buffers.
 static void Preparefiletoprint(t_printdata *print)
 {
-  ulong l;
+  uint32_t l;
 #ifdef _WIN32
   FILETIME created,accessed,modified;
   // Get file attributes.
   print->attributes=GetFileAttributes(print->infile);
   if (print->attributes==0xFFFFFFFF)
     print->attributes=FILE_ATTRIBUTE_NORMAL;
-  // Open input file.
-  print->hfile=CreateFile(print->infile,GENERIC_READ,FILE_SHARE_READ,
+  // Open input file as HANDLE for equivalent of stat data
+  HANDLE h = CreateFile(print->infile,GENERIC_READ,FILE_SHARE_READ,
     NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
-  if (print->hfile==INVALID_HANDLE_VALUE) {
+  if (h == INVALID_HANDLE_VALUE) {
     Reporterror("Unable to open file");
     Stopprinting(print);
-    return; };
+    return; 
+  };
   // Get time of last file modification.
-  GetFileTime(print->hfile,&created,&accessed,&modified);
+  GetFileTime (h, &created, &accessed, &modified);
   if (modified.dwHighDateTime==0)
     print->modified=created;
   else
     print->modified=modified;
   // Get original (uncompressed) file size.
-  print->origsize=GetFileSize(print->hfile,&l);
+  print->origsize=GetFileSize (h, &l);
   if (print->origsize==0 || print->origsize>MAXSIZE || l!=0) {
     Reporterror("Invalid file size");
     Stopprinting(print);
-    return; };
+    return; 
+  };
 #elif __linux__
   // Get file attributes
   if ( stat(print->infile.c_str(), &(print->attributes)) != 0 ) {
@@ -245,6 +257,8 @@ static void Preparefiletoprint(t_printdata *print)
   print->step++;
 };
 
+
+
 // Initializes bzip2 compression engine.
 static void Preparecompressor(t_printdata *print) {
   int success;
@@ -266,10 +280,12 @@ static void Preparecompressor(t_printdata *print) {
   print->step++;
 };
 
+
+
 // Compresses file.
 static void Readandcompress(t_printdata *print) {
   int success;
-  ulong size,l;
+  uint32_t size,l;
   // Read next piece of data.
   size=print->origsize-print->readsize;
   if (size>PACKLEN) size=PACKLEN;
@@ -311,10 +327,12 @@ static void Readandcompress(t_printdata *print) {
   ;
 };
 
+
+
 // Finishes compression (may take significant time) and closes input file.
 static void Finishcompression(t_printdata *print) {
   int success;
-  ulong l;
+  uint32_t l;
   // Finish compression.
   if (print->compression) {
     success=BZ2_bzCompress(&print->bzstream,BZ_FINISH);
@@ -323,7 +341,8 @@ static void Finishcompression(t_printdata *print) {
     if (success==BZ_FINISH_OK && print->bzstream.avail_out==0) {
       BZ2_bzCompressEnd(&print->bzstream);
       print->compression=0;
-      SetFilePointer(print->hfile,0,NULL,FILE_BEGIN);
+      //SetFilePointer(print->hfile,0,NULL,FILE_BEGIN);
+      rewind(print->hfile);
       print->readsize=0;
       print->step--;
       return; };
@@ -354,11 +373,13 @@ static void Finishcompression(t_printdata *print) {
   print->step++;
 };
 
+
+
 // Encrypts data. I ask to enter password individually for each file. AES-256
 // encryption is very fast, so we don't need to split it into several steps.
 static void Encryptdata(t_printdata *print) {
   int n;
-  ulong l;
+  uint32_t l;
   aes_context ctx;
   // Calculate 16-bit CRC of possibly compressed but unencrypted data. I use
   // it to verify data after decryption: the safe way to assure that password
@@ -370,10 +391,11 @@ static void Encryptdata(t_printdata *print) {
     return; };
   // Ask for password. If user cancels, skip file.
   Message("Encrypting data...",0);
-  if (Confirmpassword()!=0) {          // User cancelled encryption
-    Message("",0);
-    Stopprinting(print);
-    return; };
+  //FIXME if we want encryption, securely get it from user here
+  //if (Confirmpassword()!=0) {          // User cancelled encryption
+  //  Message("",0);
+  //  Stopprinting(print);
+  //  return; };
   // Empty password means: leave data unencrypted.
   if (password[0]=='\0') {
     print->encryption=0;
@@ -396,15 +418,14 @@ static void Encryptdata(t_printdata *print) {
   print->step++;
 };
 
+
+
 // Prepares for printing. Despite its size, this routine is very quick.
 static void Initializeprinting(t_printdata *print) {
   int i,dx,dy,px,py,nx,ny,width,height,success,rastercaps;
   char fil[MAXPATH],nam[MAXFILE],ext[MAXEXT],jobname[TEXTLEN];
   BITMAPINFO *pbmi;
-  SIZE extent;
-  PRINTDLG printdlg;
-  DOCINFO dinfo;
-  DEVNAMES *pdevnames;
+  //SIZE extent; //For calculating header/footer space
   // Prepare superdata.
   print->superdata.addr=SUPERBLOCK;
   print->superdata.datasize=print->alignedsize;
@@ -413,13 +434,15 @@ static void Initializeprinting(t_printdata *print) {
     print->superdata.mode|=PBM_COMPRESSED;
   if (print->encryption)
     print->superdata.mode|=PBM_ENCRYPTED;
+#ifdef __WIN32  //mask windows values, otherwise leave *nix mode data alone
   print->superdata.attributes=(uchar)(print->attributes &
     (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
     FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_ARCHIVE|
     FILE_ATTRIBUTE_NORMAL));
+#endif
   print->superdata.modified=print->modified;
   print->superdata.filecrc=(ushort)print->bufcrc;
-  fnsplit(print->infile,NULL,NULL,nam,ext);
+  fnsplit(print->infile,NULL,NULL,nam,ext, MAXPATH);
   fnmerge(fil,NULL,NULL,nam,ext);
   // Note that name in superdata may be not null-terminated.
   strncpy(print->superdata.name,fil,sizeof(print->superdata.name));
@@ -427,90 +450,93 @@ static void Initializeprinting(t_printdata *print) {
   // parameters. I do not enforce high quality or high resolution - the user is
   // the king (well, a sort of).
   if (print->outbmp[0]=='\0') {
-    // Open standard Print dialog box.
-    memset(&printdlg,0,sizeof(PRINTDLG));
-    printdlg.lStructSize=sizeof(PRINTDLG);
-    printdlg.hwndOwner=hwmain;
-    printdlg.hDevMode=pagesetup.hDevMode;
-    printdlg.hDevNames=pagesetup.hDevNames;
-    printdlg.hDC=NULL;                 // Returns DC
-    printdlg.Flags=PD_ALLPAGES|PD_RETURNDC|PD_NOSELECTION|PD_PRINTSETUP;
-    printdlg.nFromPage=1;              // It's hard to calculate the number of
-    printdlg.nToPage=9999;             // pages in advance.
-    printdlg.nMinPage=1;
-    printdlg.nMaxPage=9999;
-    printdlg.nCopies=1;
-    printdlg.hInstance=hinst;
-    success=PrintDlg(&printdlg);
-    // Save important information.
-    print->dc=printdlg.hDC;
-    print->frompage=printdlg.nFromPage-1;
-    print->topage=printdlg.nToPage-1;
-    // Clean up to prevent memory leaks.
-    if (pagesetup.hDevMode==NULL)
-      pagesetup.hDevMode=printdlg.hDevMode;
-    else if (printdlg.hDevMode!=pagesetup.hDevMode)
-      GlobalFree(printdlg.hDevMode);
-    if (pagesetup.hDevNames==NULL)
-      pagesetup.hDevNames=printdlg.hDevNames;
-    else if (printdlg.hDevNames!=pagesetup.hDevNames)
-      GlobalFree(printdlg.hDevNames);
-    // Analyse results.
-    if (success==0) {                  // User cancelled printing
-      Message("",0);
-      Stopprinting(print);
-      return; };
-    if (print->dc==NULL) {             // Prointer DC is unavailable
-      Reporterror("Unable to access printer");
-      Stopprinting(print);
-      return; };
-    // Assure that printer is capable of displaying bitmaps.
-    rastercaps=GetDeviceCaps(print->dc,RASTERCAPS);
-    if ((rastercaps & RC_DIBTODEV)==0) {
-      Reporterror("The selected printer can't print bitmaps");
-      Stopprinting(print);
-      return; };
-    // Get resolution and size of print area in pixels.
-    print->ppix=GetDeviceCaps(print->dc,LOGPIXELSX);
-    print->ppiy=GetDeviceCaps(print->dc,LOGPIXELSY);
-    width=GetDeviceCaps(print->dc,HORZRES);
-    height=GetDeviceCaps(print->dc,VERTRES);
-    // Create fonts to draw title and comment. If system is unable to create
-    // any font, I get standard one. Of course, standard font will be almost
-    // invisible with printer's resolution.
-    if (print->printheader) {
-      print->hfont6=CreateFont(print->ppiy/6,0,0,0,FW_LIGHT,0,0,0,
-        ANSI_CHARSET,OUT_TT_PRECIS,CLIP_DEFAULT_PRECIS,
-        PROOF_QUALITY,FF_SWISS,NULL);
-      print->hfont10=CreateFont(print->ppiy/10,0,0,0,FW_LIGHT,0,0,0,
-        ANSI_CHARSET,OUT_TT_PRECIS,CLIP_DEFAULT_PRECIS,
-        PROOF_QUALITY,FF_SWISS,NULL);
-      if (print->hfont6==NULL)
-        print->hfont6=GetStockObject(SYSTEM_FONT);
-      if (print->hfont10==NULL)
-        print->hfont10=GetStockObject(SYSTEM_FONT);
-      // Set text color (gray) and alignment (centered).
-      SetTextColor(print->dc,RGB(128,128,128));
-      SetTextAlign(print->dc,TA_TOP|TA_CENTER);
-      // Calculate height of title and info lines on the paper.
-      SelectObject(print->dc,print->hfont6);
-      if (GetTextExtentPoint32(print->dc,"Page",4,&extent)==0)
-        print->extratop=print->ppiy/4;
-      else
-        print->extratop=extent.cy+print->ppiy/16;
-      SelectObject(print->dc,print->hfont10);
-      if (GetTextExtentPoint32(print->dc,"Page",4,&extent)==0)
-        print->extrabottom=print->ppiy/6;
-      else
-        print->extrabottom=extent.cy+print->ppiy/24;
-      ; }
-    else {
-      print->hfont6=NULL;
-      print->hfont10=NULL;
-      print->extratop=print->extrabottom=0; };
-    // Dots on paper are black (palette index 0 in the memory bitmap that will
-    // be created later in this subroutine).
-    print->black=0; }
+    ReportError("Print job creation is disabled");
+    //// Open standard Print dialog box.
+    ////memset(&printdlg,0,sizeof(PRINTDLG));
+    //printdlg.lStructSize=sizeof(PRINTDLG);
+    //printdlg.hwndOwner=hwmain;
+    //printdlg.hDevMode=pagesetup.hDevMode;
+    //printdlg.hDevNames=pagesetup.hDevNames;
+    //printdlg.hDC=NULL;                 // Returns DC
+    //printdlg.Flags=PD_ALLPAGES|PD_RETURNDC|PD_NOSELECTION|PD_PRINTSETUP;
+    //printdlg.nFromPage=1;              // It's hard to calculate the number of
+    //printdlg.nToPage=9999;             // pages in advance.
+    //printdlg.nMinPage=1;
+    //printdlg.nMaxPage=9999;
+    //printdlg.nCopies=1;
+    //printdlg.hInstance=hinst;
+    //success=PrintDlg(&printdlg);
+    //// Save important information.
+    //print->dc=printdlg.hDC;
+    //print->frompage=printdlg.nFromPage-1;
+    //print->topage=printdlg.nToPage-1;
+    //// Clean up to prevent memory leaks.
+    //if (pagesetup.hDevMode==NULL)
+    //  pagesetup.hDevMode=printdlg.hDevMode;
+    //else if (printdlg.hDevMode!=pagesetup.hDevMode)
+    //  GlobalFree(printdlg.hDevMode);
+    //if (pagesetup.hDevNames==NULL)
+    //  pagesetup.hDevNames=printdlg.hDevNames;
+    //else if (printdlg.hDevNames!=pagesetup.hDevNames)
+    //  GlobalFree(printdlg.hDevNames);
+    //// Analyse results.
+    //if (success==0) {                  // User cancelled printing
+    //  Message("",0);
+    //  Stopprinting(print);
+    //  return; };
+    //if (print->dc==NULL) {             // Prointer DC is unavailable
+    //  Reporterror("Unable to access printer");
+    //  Stopprinting(print);
+    //  return; };
+    //// Assure that printer is capable of displaying bitmaps.
+    //rastercaps=GetDeviceCaps(print->dc,RASTERCAPS);
+    //if ((rastercaps & RC_DIBTODEV)==0) {
+    //  Reporterror("The selected printer can't print bitmaps");
+    //  Stopprinting(print);
+    //  return; };
+    //// Get resolution and size of print area in pixels.
+    //print->ppix=GetDeviceCaps(print->dc,LOGPIXELSX);
+    //print->ppiy=GetDeviceCaps(print->dc,LOGPIXELSY);
+    //width=GetDeviceCaps(print->dc,HORZRES);
+    //height=GetDeviceCaps(print->dc,VERTRES);
+    //// Create fonts to draw title and comment. If system is unable to create
+    //// any font, I get standard one. Of course, standard font will be almost
+    //// invisible with printer's resolution.
+    //if (print->printheader) {
+    //  print->hfont6=CreateFont(print->ppiy/6,0,0,0,FW_LIGHT,0,0,0,
+    //    ANSI_CHARSET,OUT_TT_PRECIS,CLIP_DEFAULT_PRECIS,
+    //    PROOF_QUALITY,FF_SWISS,NULL);
+    //  print->hfont10=CreateFont(print->ppiy/10,0,0,0,FW_LIGHT,0,0,0,
+    //    ANSI_CHARSET,OUT_TT_PRECIS,CLIP_DEFAULT_PRECIS,
+    //    PROOF_QUALITY,FF_SWISS,NULL);
+    //  if (print->hfont6==NULL)
+    //    print->hfont6=GetStockObject(SYSTEM_FONT);
+    //  if (print->hfont10==NULL)
+    //    print->hfont10=GetStockObject(SYSTEM_FONT);
+    //  // Set text color (gray) and alignment (centered).
+    //  SetTextColor(print->dc,RGB(128,128,128));
+    //  SetTextAlign(print->dc,TA_TOP|TA_CENTER);
+    //  // Calculate height of title and info lines on the paper.
+    //  SelectObject(print->dc,print->hfont6);
+    //  if (GetTextExtentPoint32(print->dc,"Page",4,&extent)==0)
+    //    print->extratop=print->ppiy/4;
+    //  else
+    //    print->extratop=extent.cy+print->ppiy/16;
+    //  SelectObject(print->dc,print->hfont10);
+    //  if (GetTextExtentPoint32(print->dc,"Page",4,&extent)==0)
+    //    print->extrabottom=print->ppiy/6;
+    //  else
+    //    print->extrabottom=extent.cy+print->ppiy/24;
+    //  }
+    //else {
+    //  print->hfont6=NULL;
+    //  print->hfont10=NULL;
+    //  print->extratop=print->extrabottom=0; 
+    //};
+    //// Dots on paper are black (palette index 0 in the memory bitmap that will
+    //// be created later in this subroutine).
+    //print->black=0; 
+  }
   // I treat printing to bitmap as a debugging feature and set some more or
   // less sound defaults.
   else {
@@ -520,38 +546,47 @@ static void Initializeprinting(t_printdata *print) {
     if (resx==0 || resy==0) {
       print->ppix=300; print->ppiy=300; }
     else {
-      print->ppix=resx; print->ppiy=resy; };
-    if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
-      width=pagesetup.ptPaperSize.x*print->ppix/1000;
-      height=pagesetup.ptPaperSize.y*print->ppiy/1000; }
-    else if (pagesetup.Flags & PSD_INHUNDREDTHSOFMILLIMETERS) {
-      width=pagesetup.ptPaperSize.x*print->ppix/2540;
-      height=pagesetup.ptPaperSize.y*print->ppiy/2540; }
-    else {                             // Use default A4 size (210x292 mm)
-      width=print->ppix*8270/1000;
-      height=print->ppiy*11690/1000; };
-    print->hfont6=NULL;
-    print->hfont10=NULL;
-    print->extratop=print->extrabottom=0;
+      print->ppix=resx; print->ppiy=resy; 
+    };
+
+    //if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
+    //  width=pagesetup.ptPaperSize.x*print->ppix/1000;
+    //  height=pagesetup.ptPaperSize.y*print->ppiy/1000; 
+    //}
+    //else if (pagesetup.Flags & PSD_INHUNDREDTHSOFMILLIMETERS) {
+    //  width=pagesetup.ptPaperSize.x*print->ppix/2540;
+    //  height=pagesetup.ptPaperSize.y*print->ppiy/2540; 
+    //}
+    //else {                             // Use default A4 size (210x292 mm)
+    width=print->ppix*8270/1000;
+    height=print->ppiy*11690/1000; 
+    //};
+    //print->hfont6=NULL;
+    //print->hfont10=NULL;
+    //print->extratop=print->extrabottom=0;
     // To simplify recognition of grid on high-contrast bitmap, dots on the
     // bitmap are dark gray.
-    print->black=64; };
+    print->black=64; 
+  };
   // Calculate page borders in the pixels of printer's resolution.
-  if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
-    print->borderleft=pagesetup.rtMargin.left*print->ppix/1000;
-    print->borderright=pagesetup.rtMargin.right*print->ppix/1000;
-    print->bordertop=pagesetup.rtMargin.top*print->ppiy/1000;
-    print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/1000; }
-  else if (pagesetup.Flags & PSD_INHUNDREDTHSOFMILLIMETERS) {
-    print->borderleft=pagesetup.rtMargin.left*print->ppix/2540;
-    print->borderright=pagesetup.rtMargin.right*print->ppix/2540;
-    print->bordertop=pagesetup.rtMargin.top*print->ppiy/2540;
-    print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; }
-  else {
-    print->borderleft=print->ppix;
-    print->borderright=print->ppix/2;
-    print->bordertop=print->ppiy/2;
-    print->borderbottom=print->ppiy/2; }
+  //if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
+  //  print->borderleft=pagesetup.rtMargin.left*print->ppix/1000;
+  //  print->borderright=pagesetup.rtMargin.right*print->ppix/1000;
+  //  print->bordertop=pagesetup.rtMargin.top*print->ppiy/1000;
+  //  print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/1000; 
+  //}
+  //else if (pagesetup.Flags & PSD_INHUNDREDTHSOFMILLIMETERS) {
+  //  print->borderleft=pagesetup.rtMargin.left*print->ppix/2540;
+  //  print->borderright=pagesetup.rtMargin.right*print->ppix/2540;
+  //  print->bordertop=pagesetup.rtMargin.top*print->ppiy/2540;
+  //  print->borderbottom=pagesetup.rtMargin.bottom*print->ppiy/2540; 
+  //}
+  //else {
+  print->borderleft=print->ppix;
+  print->borderright=print->ppix/2;
+  print->bordertop=print->ppiy/2;
+  print->borderbottom=print->ppiy/2; 
+  //}
   // Calculate size of printable area, in the pixels of printer's resolution.
   width-=
     print->borderleft+print->borderright;
@@ -560,10 +595,10 @@ static void Initializeprinting(t_printdata *print) {
   // Calculate data point raster (dx,dy) and size of the point (px,py) in the
   // pixels of printer's resolution. Note that pixels, at least in theory, may
   // be non-rectangular.
-  dx=max(print->ppix/dpi,2);
-  px=max((dx*dotpercent)/100,1);
-  dy=max(print->ppiy/dpi,2);
-  py=max((dy*dotpercent)/100,1);
+  dx=std::max(print->ppix/dpi,2);
+  px=std::max((dx*dotpercent)/100,1);
+  dy=std::max(print->ppiy/dpi,2);
+  py=std::max((dy*dotpercent)/100,1);
   // Calculate width of the border around the data grid.
   if (print->printborder)
     print->border=dx*16;
@@ -606,16 +641,22 @@ static void Initializeprinting(t_printdata *print) {
     pbmi->bmiColors[i].rgbReserved=0; };
   // Create bitmap. Direct drawing is faster than tens of thousands of API
   // calls.
-  if (print->outbmp[0]=='\0') {        // Print to paper
-    print->hbmp=CreateDIBSection(print->dc,pbmi,DIB_RGB_COLORS,
-      (void **)&(print->dibbits),NULL,0);
-    if (print->hbmp==NULL || print->dibbits==NULL) {
-      Reporterror("Low memory, can't print");
-      Stopprinting(print);
-      return;
-    }; }
+  //if (print->outbmp[0]=='\0') {        // Print to paper
+  //  print->hbmp=CreateDIBSection(print->dc,pbmi,DIB_RGB_COLORS,
+  //    (void **)&(print->dibbits),NULL,0);
+  //  if (print->hbmp==NULL || print->dibbits==NULL) {
+  //    Reporterror("Low memory, can't print");
+  //    Stopprinting(print);
+  //    return;
+  //  }
+  //}
+  if (print->outbmp[0]=='\0') {
+    Reporterror("Outbmp unspecified, can not creat BMP");
+    Stopprinting(print);
+    return;
+  }
   else {                               // Save to bitmap
-    print->drawbits=(uchar *)GlobalAlloc(GMEM_FIXED,width*height);
+    print->drawbits=(uchar *)malloc(width*height);
     if (print->drawbits==NULL) {
       Reporterror("Low memory, can't create bitmap");
       return;
@@ -638,28 +679,28 @@ static void Initializeprinting(t_printdata *print) {
   print->nx=nx;
   print->ny=ny;
   // Start printing.
-  if (print->outbmp[0]=='\0') {
-    if (pagesetup.hDevNames!=NULL)
-      pdevnames=(DEVNAMES *)GlobalLock(pagesetup.hDevNames);
-    else
-      pdevnames=NULL;
-    memset(&dinfo,0,sizeof(DOCINFO));
-    dinfo.cbSize=sizeof(DOCINFO);
-    sprintf(jobname,"PaperBack - %.64s",print->superdata.name);
-    dinfo.lpszDocName=jobname;
-    if (pdevnames==NULL)
-      dinfo.lpszOutput=NULL;
-    else
-      dinfo.lpszOutput=(char *)pdevnames+pdevnames->wOutputOffset;
-    success=StartDoc(print->dc,&dinfo);
-    if (pdevnames!=NULL)
-      GlobalUnlock(pagesetup.hDevNames);
-    if (success<=0) {
-      Reporterror("Unable to print");
-      Stopprinting(print);
-      return; };
-    print->startdoc=1;
-  };
+  //if (print->outbmp[0]=='\0') {
+  //  if (pagesetup.hDevNames!=NULL)
+  //    pdevnames=(DEVNAMES *)GlobalLock(pagesetup.hDevNames);
+  //  else
+  //    pdevnames=NULL;
+  //  memset(&dinfo,0,sizeof(DOCINFO));
+  //  dinfo.cbSize=sizeof(DOCINFO);
+  //  sprintf(jobname,"PaperBack - %.64s",print->superdata.name);
+  //  dinfo.lpszDocName=jobname;
+  //  if (pdevnames==NULL)
+  //    dinfo.lpszOutput=NULL;
+  //  else
+  //    dinfo.lpszOutput=(char *)pdevnames+pdevnames->wOutputOffset;
+  //  success=StartDoc(print->dc,&dinfo);
+  //  if (pdevnames!=NULL)
+  //    GlobalUnlock(pagesetup.hDevNames);
+  //  if (success<=0) {
+  //    Reporterror("Unable to print");
+  //    Stopprinting(print);
+  //    return; };
+  //  print->startdoc=1;
+  //};
   // Step finished.
   print->step++;
 };
@@ -671,9 +712,9 @@ static void Printnextpage(t_printdata *print) {
   char s[TEXTLEN],ts[TEXTLEN/2];
   char drv[MAXDRIVE],dir[MAXDIR],nam[MAXFILE],ext[MAXEXT],path[MAXPATH+32];
   uchar *bits;
-  ulong u,size,pagesize,offset;
+  uint32_t u,size,pagesize,offset;
   t_data block,cksum;
-  HANDLE hbmpfile;
+  //HANDLE hbmpfile;
   BITMAPFILEHEADER bmfh;
   BITMAPINFO *pbmi;
   // Calculate offset of this page in data.
@@ -681,7 +722,8 @@ static void Printnextpage(t_printdata *print) {
   if (offset>=print->datasize || print->frompage>print->topage) {
     // All requested pages are printed, finish this step.
     print->step++;
-    return; };
+    return; 
+  };
   // Report page.
   npages=(print->datasize+print->pagesize-1)/print->pagesize;
   sprintf(s,"Processing page %i of %i...",print->frompage+1,npages);
@@ -863,7 +905,7 @@ static void Printnextpage(t_printdata *print) {
     // Create and save bitmap file header.
     success=1;
     n=sizeof(BITMAPINFOHEADER)+256*sizeof(RGBQUAD);
-    bmfh.bfType='BM';
+    bmfh.bfType=CHAR_BM; //First two bytes are 'BM'
     bmfh.bfSize=sizeof(bmfh)+n+width*height;
     bmfh.bfReserved1=bmfh.bfReserved2=0;
     bmfh.bfOffBits=sizeof(bmfh)+n;
@@ -876,11 +918,11 @@ static void Printnextpage(t_printdata *print) {
       pbmi->bmiHeader.biHeight=height;
       pbmi->bmiHeader.biXPelsPerMeter=(print->ppix*10000)/254;
       pbmi->bmiHeader.biYPelsPerMeter=(print->ppiy*10000)/254;
-      if (WriteFile(hbmpfile,pbmi,n,&u,NULL)==0 || u!=(ulong)n) success=0; };
+      if (WriteFile(hbmpfile,pbmi,n,&u,NULL)==0 || u!=(uint32_t)n) success=0; };
     // Save bitmap data.
     if (success) {
       if (WriteFile(hbmpfile,bits,width*height,&u,NULL)==0 ||
-        u!=(ulong)(width*height))
+        u!=(uint32_t)(width*height))
         success=0;
       ;  
     };

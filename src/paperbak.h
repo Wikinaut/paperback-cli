@@ -54,7 +54,6 @@
 typedef unsigned char  uchar;
 typedef uint16_t ushort;
 typedef unsigned int   uint;
-typedef uint32_t  ulong;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +70,7 @@ typedef uint32_t  ulong;
 #define NGROUPMAX      10
 
 typedef struct __attribute__ ((packed)) t_data { // Block on paper
-  ulong          addr;                 // Offset of the block or special code
+  uint32_t          addr;                 // Offset of the block or special code
   uchar          data[NDATA];          // Useful data
   ushort         crc;                  // Cyclic redundancy of addr and data
   uchar          ecc[32];              // Reed-Solomon's error correction code
@@ -85,14 +84,18 @@ static_assert(sizeof(t_data)==128);
 // older *NIX versions.  Assertion failure is likely due to this.  128 bytes
 // is necessary for ECC to work properly (and multiples of 16 for CRC)
 typedef struct __attribute__ ((packed)) t_superdata { // Id block on paper
-  ulong          addr;                 // Expecting SUPERBLOCK
-  ulong          datasize;             // Size of (compressed) data
-  ulong          pagesize;             // Size of (compressed) data on page
-  ulong          origsize;             // Size of original (uncompressed) data
+  uint32_t       addr;                 // Expecting SUPERBLOCK
+  uint32_t       datasize;             // Size of (compressed) data
+  uint32_t       pagesize;             // Size of (compressed) data on page
+  uint32_t       origsize;             // Size of original (uncompressed) data
   uchar          mode;                 // Special mode bits, set of PBM_xxx
   uchar          attributes;           // Basic file attributes
   ushort         page;                 // Actual page (1-based)
-  time_t         modified;             // (Formerly FILETIME) last modify time
+#ifdef _WIN32
+  FILETIME       modified;             // last modify time
+#elif __linux__
+  time_t         modified;             // last modify time
+#endif
   ushort         filecrc;              // CRC of compressed decrypted file
   char           name[FILENAME_SIZE];  // File name - may have all 64 chars
   ushort         crc;                  // Cyclic redundancy of previous fields
@@ -101,21 +104,25 @@ typedef struct __attribute__ ((packed)) t_superdata { // Id block on paper
 static_assert(sizeof(t_superdata)==sizeof(t_data));
 
 typedef struct t_block {               // Block in memory
-  ulong          addr;                 // Offset of the block
-  ulong          recsize;              // 0 for data, or length of covered data
+  uint32_t       addr;                 // Offset of the block
+  uint32_t       recsize;              // 0 for data, or length of covered data
   uchar          data[NDATA];          // Useful data
 } t_block;
 
 typedef struct t_superblock {          // Identification block in memory
-  ulong          addr;                 // Expecting SUPERBLOCK
-  ulong          datasize;             // Size of (compressed) data
-  ulong          pagesize;             // Size of (compressed) data on page
-  ulong          origsize;             // Size of original (uncompressed) data
-  ulong          mode;                 // Special mode bits, set of PBM_xxx
+  uint32_t       addr;                 // Expecting SUPERBLOCK
+  uint32_t       datasize;             // Size of (compressed) data
+  uint32_t       pagesize;             // Size of (compressed) data on page
+  uint32_t       origsize;             // Size of original (uncompressed) data
+  uint32_t       mode;                 // Special mode bits, set of PBM_xxx
   ushort         page;                 // Actual page (1-based)
-  time_t         modified;             // (Formerly FILETIME) last modify time
-  ulong          attributes;           // Basic file attributes
-  ulong          filecrc;              // 16-bit CRC of decrypted packed file
+#ifdef _WIN32
+  FILETIME       modified;             // last modify time
+#elif __linux__
+  time_t         modified;             // last modify time
+#endif
+  uint32_t       attributes;           // Basic file attributes
+  uint32_t       filecrc;              // 16-bit CRC of decrypted packed file
   char           name[FILENAME_SIZE];  // File name - may have all 64 chars
   int            ngroup;               // Actual NGROUP on the page
 } t_superblock;
@@ -144,20 +151,24 @@ typedef struct t_printdata {           // Print control structure
   char           infile[MAXPATH];      // Name of input file
   char           outbmp[MAXPATH];      // Name of output bitmap (empty: paper)
   FILE           *hfile;               // (Formerly HANDLE) file pointer
-  time_t         modified;             // (Formerly FILETIME) last modify time
-  ulong          attributes;           // File attributes
-  ulong          origsize;             // Original file size, bytes
-  ulong          readsize;             // Amount of data read from file so far
-  ulong          datasize;             // Size of (compressed) data
-  ulong          alignedsize;          // Data size aligned to next 16 bytes
-  ulong          pagesize;             // Size of (compressed) data on page
+#ifdef _WIN32
+  FILETIME       modified;             // last modify time
+#elif __linux__
+  time_t         modified;             // last modify time
+#endif
+  uint32_t       attributes;           // File attributes
+  uint32_t       origsize;             // Original file size, bytes
+  uint32_t       readsize;             // Amount of data read from file so far
+  uint32_t       datasize;             // Size of (compressed) data
+  uint32_t       alignedsize;          // Data size aligned to next 16 bytes
+  uint32_t       pagesize;             // Size of (compressed) data on page
   int            compression;          // 0: none, 1: fast, 2: maximal
   int            encryption;           // 0: none, 1: encrypt
   int            printheader;          // Print header and footer
   int            printborder;          // Print border around bitmap
   int            redundancy;           // Redundancy
   uchar          *buf;                 // Buffer for compressed file
-  ulong          bufsize;              // Size of buf, bytes
+  uint32_t       bufsize;              // Size of buf, bytes
   uchar          *readbuf;             // Read buffer, PACKLEN bytes long
   bz_stream      bzstream;             // Compression control structure
   int            bufcrc;               // 16-bit CRC of (packed) data in buf
@@ -266,19 +277,23 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            busy;                 // In work
   // General file data.
   char           name[64];             // File name - may have all 64 chars
-  time_t         modified;             // (Formerly FILETIME) last modify time
-  ulong          attributes;           // Basic file attrributes
-  ulong          datasize;             // Size of (compressed) data
-  ulong          pagesize;             // Size of (compressed) data on page
-  ulong          origsize;             // Size of original (uncompressed) data
-  ulong          mode;                 // Special mode bits, set of PBM_xxx
+#ifdef _WIN32
+  FILETIME       modified;             // last modify time
+#elif __linux__
+  time_t         modified;             // last modify time
+#endif
+  uint32_t       attributes;           // Basic file attrributes
+  uint32_t       datasize;             // Size of (compressed) data
+  uint32_t       pagesize;             // Size of (compressed) data on page
+  uint32_t       origsize;             // Size of original (uncompressed) data
+  uint32_t       mode;                 // Special mode bits, set of PBM_xxx
   int            npages;               // Total number of pages
-  ulong          filecrc;              // 16-bit CRC of decrypted packed file
+  uint32_t       filecrc;              // 16-bit CRC of decrypted packed file
   // Properties of currently processed page.
   int            page;                 // Currently processed page
   int            ngroup;               // Actual NGROUP on the page
-  ulong          minpageaddr;          // Minimal address of block on page
-  ulong          maxpageaddr;          // Maximal address of block on page
+  uint32_t       minpageaddr;          // Minimal address of block on page
+  uint32_t       maxpageaddr;          // Maximal address of block on page
   // Gathered data.
   int            nblock;               // Total number of data blocks
   int            ndata;                // Number of decoded blocks so far
@@ -287,7 +302,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   // Statistics.
   int            goodblocks;           // Total number of good blocks read
   int            badblocks;            // Total number of unreadable blocks
-  ulong          restoredbytes;        // Total number of bytes restored by ECC
+  uint32_t       restoredbytes;        // Total number of bytes restored by ECC
   int            recoveredblocks;      // Total number of recovered blocks
   int            rempages[8];          // 1-based list of remaining pages
 } t_fproc;
@@ -297,7 +312,7 @@ t_fproc   fproc[NFILE];         // Processed files
 void   Closefproc(int slot);
 int    Startnextpage(t_superblock *superblock);
 int    Addblock(t_block *block,int slot);
-int    Finishpage(int slot,int ngood,int nbad,ulong nrestored);
+int    Finishpage(int slot,int ngood,int nbad,uint32_t nrestored);
 int    Saverestoredfile(int slot,int force);
 
 

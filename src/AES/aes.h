@@ -1,13 +1,14 @@
 #ifndef _AES_H
 #define _AES_H
 
+#include <stdint.h>
+
 typedef unsigned char  uchar;
-typedef unsigned long  ulong;
 
 typedef struct
 {
-    ulong erk[64];      /* encryption round keys */
-    ulong drk[64];      /* decryption round keys */
+    uint32_t erk[64];      /* encryption round keys */
+    uint32_t drk[64];      /* decryption round keys */
     int nr;             /* number of rounds */
 }
 aes_context;
