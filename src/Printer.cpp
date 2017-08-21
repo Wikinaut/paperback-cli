@@ -28,7 +28,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #elif __linux__
 #include <sys/stat.h>
@@ -177,7 +177,7 @@ void Stopprinting(t_printdata *print) {
 static void Preparefiletoprint(t_printdata *print)
 {
   uint32_t l;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   FILETIME created,accessed,modified;
   // Get file attributes.
   print->attributes=GetFileAttributes(print->infile);
@@ -437,7 +437,8 @@ static void Initializeprinting(t_printdata *print) {
     print->superdata.mode|=PBM_COMPRESSED;
   if (print->encryption)
     print->superdata.mode|=PBM_ENCRYPTED;
-#ifdef __WIN32  //mask windows values, otherwise leave *nix mode data alone
+#if defined(_WIN32) || defined(__CYGWIN__)
+  //mask windows values, otherwise leave *nix mode data alone
   print->superdata.attributes=(uchar)(print->attributes &
     (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
     FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_ARCHIVE|

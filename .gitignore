@@ -2,7 +2,6 @@
 *.o
 *.gch
 *.exe
-
 *.log
 
 # git merge backups
@@ -17,4 +16,5 @@ paperback-cli
 
 # files from tools
 tags
+.swp
 

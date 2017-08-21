@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif
 #include "bzlib.h"
@@ -75,7 +75,9 @@ typedef struct __attribute__ ((packed)) t_data { // Block on paper
   ushort         crc;                  // Cyclic redundancy of addr and data
   uchar          ecc[32];              // Reed-Solomon's error correction code
 } t_data;
+#ifdef __linux__
 static_assert(sizeof(t_data)==128);
+#endif
 
 #define PBM_COMPRESSED 0x01            // Paper backup is compressed
 #define PBM_ENCRYPTED  0x02            // Paper backup is encrypted
@@ -91,7 +93,7 @@ typedef struct __attribute__ ((packed)) t_superdata { // Id block on paper
   uchar          mode;                 // Special mode bits, set of PBM_xxx
   uchar          attributes;           // Basic file attributes
   ushort         page;                 // Actual page (1-based)
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   FILETIME       modified;             // last modify time
 #elif __linux__
   time_t         modified;             // last modify time
@@ -101,7 +103,9 @@ typedef struct __attribute__ ((packed)) t_superdata { // Id block on paper
   ushort         crc;                  // Cyclic redundancy of previous fields
   uchar          ecc[ECC_SIZE];        // Reed-Solomon's error correction code
 } t_superdata;
+#ifdef __linux__
 static_assert(sizeof(t_superdata)==sizeof(t_data));
+#endif
 
 typedef struct t_block {               // Block in memory
   uint32_t       addr;                 // Offset of the block
@@ -116,7 +120,7 @@ typedef struct t_superblock {          // Identification block in memory
   uint32_t       origsize;             // Size of original (uncompressed) data
   uint32_t       mode;                 // Special mode bits, set of PBM_xxx
   ushort         page;                 // Actual page (1-based)
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   FILETIME       modified;             // last modify time
 #elif __linux__
   time_t         modified;             // last modify time
@@ -151,7 +155,7 @@ typedef struct t_printdata {           // Print control structure
   char           infile[MAXPATH];      // Name of input file
   char           outbmp[MAXPATH];      // Name of output bitmap (empty: paper)
   FILE           *hfile;               // (Formerly HANDLE) file pointer
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   FILETIME       modified;             // last modify time
 #elif __linux__
   time_t         modified;             // last modify time
@@ -277,7 +281,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            busy;                 // In work
   // General file data.
   char           name[64];             // File name - may have all 64 chars
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   FILETIME       modified;             // last modify time
 #elif __linux__
   time_t         modified;             // last modify time
@@ -475,7 +479,7 @@ inline void fnmerge (char *path,
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////// WINDOWS SERVICE FUNCTIONS ///////////////////////////
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 // Converts file date and time into the text according to system defaults and
 // places into the string s of length n. Returns number of characters in s.
 inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
