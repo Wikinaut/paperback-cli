@@ -52,7 +52,7 @@
 #define PASSLEN        33              // Maximal length of password, incl. 0
 
 typedef unsigned char  uchar;
-typedef uint16_t ushort;
+typedef uint16_t       ushort;
 typedef unsigned int   uint;
 
 
@@ -201,15 +201,15 @@ typedef struct t_printdata {           // Print control structure
 } t_printdata;
 
 
-int       resx,resy;            // Printer resolution, dpi (may be 0!)
-t_printdata printdata;          // Print control structure
+extern int       pb_resx, pb_resy;            // Printer resolution, dpi (may be 0!)
+extern t_printdata pb_printdata;          // Print control structure
 
 void   Initializeprintsettings(void);
 void   Closeprintsettings(void);
 void   Setuppage(void);
 void   Stopprinting(t_printdata *print);
 void   Nextdataprintingstep(t_printdata *print);
-void   Printfile(char *path,char *bmp);
+void   Printfile(const char *path, const char *bmp);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -258,8 +258,8 @@ typedef struct t_procdata {            // Descriptor of processed data
   int            nrestored;            // Page statistics: restored bytes
 } t_procdata;
 
-int       orientation;          // Orientation of bitmap (-1: unknown)
-t_procdata procdata;            // Descriptor of processed data
+extern int       pb_orientation;          // Orientation of bitmap (-1: unknown)
+extern t_procdata pb_procdata;            // Descriptor of processed data
 
 void   Nextdataprocessingstep(t_procdata *pdata);
 void   Freeprocdata(t_procdata *pdata);
@@ -307,7 +307,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            rempages[8];          // 1-based list of remaining pages
 } t_fproc;
 
-t_fproc   fproc[NFILE];         // Processed files
+extern t_fproc   pb_fproc[NFILE];         // Processed files
 
 void   Closefproc(int slot);
 int    Startnextpage(t_superblock *superblock);
@@ -325,30 +325,30 @@ int    Decodebitmap(char *path);
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// USER INTERFACE ////////////////////////////////
 
-char      infile[MAXPATH];      // Last selected file to read
-char      outbmp[MAXPATH];      // Last selected bitmap to save
-char      inbmp[MAXPATH];       // Last selected bitmap to read
-char      outfile[MAXPATH];     // Last selected data file to save
-
-char      password[PASSLEN];    // Encryption password
-
-int       dpi;                  // Dot raster, dots per inch
-int       dotpercent;           // Dot size, percent of dpi
-int       compression;          // 0: none, 1: fast, 2: maximal
-int       redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
-int       printheader;          // Print header and footer
-int       printborder;          // Border around bitmap
-int       autosave;             // Autosave completed files
-int       bestquality;          // Determine best quality
-int       encryption;           // Encrypt data before printing
-int       opentext;             // Enter passwords in open text
-
-int       marginunits;          // 0:undef, 1:inches, 2:millimeters
-int       marginleft;           // Left printer page margin
-int       marginright;          // Right printer page margin
-int       margintop;            // Top printer page margin
-int       marginbottom;         // Bottom printer page margin
-
+extern char      pb_infile[MAXPATH];      // Last selected file to read
+extern char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
+extern char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
+extern char      pb_outfile[MAXPATH];     // Last selected data file to save
+ 
+extern char      pb_password[PASSLEN];    // Encryption password
+ 
+extern int       pb_dpi;                  // Dot raster, dots per inch
+extern int       pb_dotpercent;           // Dot size, percent of dpi
+extern int       pb_compression;          // 0: none, 1: fast, 2: maximal
+extern int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+extern int       pb_printheader;          // Print header and footer
+extern int       pb_printborder;          // Border around bitmap
+extern int       pb_autosave;             // Autosave completed files
+extern int       pb_bestquality;          // Determine best quality
+extern int       pb_encryption;           // Encrypt data before printing
+extern int       pb_opentext;             // Enter passwords in open text
+  
+extern int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
+extern int       pb_marginleft;           // Left printer page margin
+extern int       pb_marginright;          // Right printer page margin
+extern int       pb_margintop;            // Top printer page margin
+extern int       pb_marginbottom;         // Bottom printer page margin
+  
 void   Options(void);
 int    Confirmpassword();
 int    Getpassword(void);
@@ -506,7 +506,5 @@ inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
   return l;
 };
 
-
 #endif
-
 

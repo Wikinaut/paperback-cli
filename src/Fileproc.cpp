@@ -95,11 +95,11 @@ int Startnextpage(t_superblock *superblock) {
     memset(pf,0,sizeof(t_fproc));
     // Allocate block and recovery tables.
     pf->nblock=(superblock->datasize+NDATA-1)/NDATA;
-    pf->datavalid=(uchar *)GlobalAlloc(GPTR,pf->nblock);
-    pf->data=(uchar *)GlobalAlloc(GPTR,pf->nblock*NDATA);
+    pf->datavalid=(uchar *)calloc(pf->nblock);
+    pf->data=(uchar *)calloc(pf->nblock*NDATA);
     if (pf->datavalid==NULL || pf->data==NULL) {
-      if (pf->datavalid!=NULL) GlobalFree((HGLOBAL)pf->datavalid);
-      if (pf->data!=NULL) GlobalFree((HGLOBAL)pf->data);
+      if (pf->datavalid!=NULL) free(pf->datavalid);
+      if (pf->data!=NULL) free(pf->data);
       Reporterror("Low memory");
       return -1; };
     // Initialize remaining fields.
@@ -281,7 +281,8 @@ int Saverestoredfile(int slot,int force) {
   uchar *bufout,*data,*tempdata;
   t_fproc *pf;
   aes_context ctx;
-  HANDLE hfile;
+  //HANDLE hfile;
+  FILE *hfile;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
   pf=fproc+slot;
@@ -293,37 +294,44 @@ int Saverestoredfile(int slot,int force) {
   // If data is encrypted, decrypt it to temporary buffer. Decryption in place
   // is possible, but the whole data would be lost if password is incorrect.
   if (pf->mode & PBM_ENCRYPTED) {
-    if (pf->datasize & 0x0000000F) {
-      Reporterror("Encrypted data is not aligned");
-      return -1; };
-    if (Getpassword()!=0)
-      return -1;                       // User cancelled decryption
-    tempdata=(uchar *)GlobalAlloc(GMEM_FIXED,pf->datasize);
-    if (tempdata==NULL) {
-      Reporterror("Low memory, can't decrypt data");
-      return -1; };
-    n=strlen(password);
-    while (n<PASSLEN) password[n++]=0;
-    memset(&ctx,0,sizeof(ctx));
-    aes_set_key(&ctx,(uchar *)password,256);
-    for (l=0; l<pf->datasize; l+=16)
-      aes_decrypt(&ctx,pf->data+l,tempdata+l);
-    filecrc=Crc16(tempdata,pf->datasize);
-    if (filecrc!=pf->filecrc) {
-      Reporterror("Invalid password, please try again");
-      GlobalFree((HGLOBAL)tempdata);
-      return -1; }
-    else {
-      GlobalFree((HGLOBAL)pf->data);
-      pf->data=tempdata;
-      pf->mode&=~PBM_ENCRYPTED;
-    };
+    //FIXME securely get password from user
+    Reporterror("Encryption/Decryption not supported yet");
+    return -1;
+    //if (pf->datasize & 0x0000000F) {
+    //  Reporterror("Encrypted data is not aligned");
+    //  return -1; 
+    //};
+    //if (Getpassword()!=0)
+    //  return -1;                       // User cancelled decryption
+    //tempdata=(uchar *)GlobalAlloc(GMEM_FIXED,pf->datasize);
+    //if (tempdata==NULL) {
+    //  Reporterror("Low memory, can't decrypt data");
+    //  return -1; 
+    //};
+    //n=strlen(password);
+    //while (n<PASSLEN) password[n++]=0;
+    //memset(&ctx,0,sizeof(ctx));
+    //aes_set_key(&ctx,(uchar *)password,256);
+    //for (l=0; l<pf->datasize; l+=16)
+    //  aes_decrypt(&ctx,pf->data+l,tempdata+l);
+    //filecrc=Crc16(tempdata,pf->datasize);
+    //if (filecrc!=pf->filecrc) {
+    //  Reporterror("Invalid password, please try again");
+    //  GlobalFree((HGLOBAL)tempdata);
+    //  return -1; 
+    //}
+    //else {
+    //  GlobalFree((HGLOBAL)pf->data);
+    //  pf->data=tempdata;
+    //  pf->mode&=~PBM_ENCRYPTED;
+    //};
   };
   // If data is compressed, unpack it to temporary buffer.
   if ((pf->mode & PBM_COMPRESSED)==0) {
     // Data is not compressed.
     data=pf->data; length=pf->origsize;
-    bufout=NULL; }
+    bufout=NULL; 
+  }
   else {
     // Data is compressed. Create temporary buffer.
     if (pf->origsize==0)
@@ -342,26 +350,51 @@ int Saverestoredfile(int slot,int force) {
       return -1; };
     data=bufout; };
   // Ask user for file name.
-  if (Selectoutfile(pf->name)!=0) {    // Cancelled by user
+  // FIXME selectoutfile must be initialized prior/by arg
+  if (pf->name!=NULL) {    
     if (bufout!=NULL) GlobalFree((HGLOBAL)bufout);
-    return -1; };
+    return -1; 
+  };
   // Open file and save data.
-  hfile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
-    CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-  if (hfile==INVALID_HANDLE_VALUE) {
-    if (bufout!=NULL) GlobalFree((HGLOBAL)bufout);
+  //hfile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
+  //  CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  hfile = fopen (outfile, "wb");
+  if (hfile==NULL) {
+    if (bufout!=NULL) 
+      free(bufout);
     Reporterror("Unable to create file");
-    return -1; };
-  WriteFile(hfile,data,length,&l,NULL);
+    return -1; 
+  };
+
+  //WriteFile(hfile,data,length,&l,NULL);
+  l = fwrite (data, sizeof(char), length, hfile); 
   // Restore old modification date and time.
-  SetFileTime(hfile,&pf->modified,&pf->modified,&pf->modified);
+#ifdef _WIN32
+  // open HANDLE and set file time
+  handleFile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
+    CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  if (handleFile==INVALID_HANDLE_VALUE) {
+    if (bufout!=NULL) 
+      free(bufout);
+    Reporterror("Unable to open handle to set file time");
+    return -1; 
+  };
+  SetFileTime(handleFile,&pf->modified,&pf->modified,&pf->modified);
   // Close file and restore old basic attributes.
   CloseHandle(hfile);
   SetFileAttributes(outfile,pf->attributes);
-  if (bufout!=NULL) GlobalFree((HGLOBAL)bufout);
+  if (bufout!=NULL) 
+    free(bufout);
   if (l!=length) {
     Reporterror("I/O error");
-    return -1; };
+    return -1; 
+  };
+#elif __linux__
+  // Set file time
+  // FIXME left off here 
+  // Restore mode
+
+#endif
   // Close file descriptor and report success.
   Closefproc(slot);
   Message("File saved",0);

@@ -250,11 +250,11 @@ static void Preparefiletoprint(t_printdata *print)
     Stopprinting(print);
     return; };
   // Set options.
-  print->compression=compression;
-  print->encryption=encryption;
-  print->printheader=printheader;
-  print->printborder=printborder;
-  print->redundancy=redundancy;
+  print->compression=pb_compression;
+  print->encryption=pb_encryption;
+  print->printheader=pb_printheader;
+  print->printborder=pb_printborder;
+  print->redundancy=pb_redundancy;
   // Step finished.
   print->step++;
 };
@@ -400,22 +400,22 @@ static void Encryptdata(t_printdata *print) {
   //  Stopprinting(print);
   //  return; };
   // Empty password means: leave data unencrypted.
-  if (password[0]=='\0') {
+  if (pb_password[0]=='\0') {
     print->encryption=0;
     print->step++;
     return; };
   // Encryption routine expects that password is exactly PASSLEN bytes long.
   // Fill rest of the password with zeros.
-  n=strlen(password);
-  while (n<PASSLEN) password[n++]=0;
+  n=strlen(pb_password);
+  while (n<PASSLEN) pb_password[n++]=0;
   // Initialize encryption.
   memset(&ctx,0,sizeof(ctx));
-  aes_set_key(&ctx,(uchar *)password,256);
+  aes_set_key(&ctx,(uchar *)pb_password,256);
   // Encrypt data. AES works with 16-byte data chunks.
   for (l=0; l<print->alignedsize; l+=16)
     aes_encrypt(&ctx,print->buf+l,print->buf+l);
   // Clear password and encryption control block. We no longer need them.
-  memset(password,0,sizeof(password));
+  memset(pb_password,0,sizeof(pb_password));
   memset(&ctx,0,sizeof(ctx));
   // Step finished.
   print->step++;
@@ -546,10 +546,10 @@ static void Initializeprinting(t_printdata *print) {
     //print->dc=NULL;
     print->frompage=0;
     print->topage=9999;
-    if (resx==0 || resy==0) {
+    if (pb_resx==0 || pb_resy==0) {
       print->ppix=300; print->ppiy=300; }
     else {
-      print->ppix=resx; print->ppiy=resy; 
+      print->ppix=pb_resx; print->ppiy=pb_resy; 
     };
 
     //if (pagesetup.Flags & PSD_INTHOUSANDTHSOFINCHES) {
@@ -599,10 +599,10 @@ static void Initializeprinting(t_printdata *print) {
   // Calculate data point raster (dx,dy) and size of the point (px,py) in the
   // pixels of printer's resolution. Note that pixels, at least in theory, may
   // be non-rectangular.
-  dx=std::max(print->ppix/dpi,2);
-  px=std::max((dx*dotpercent)/100,1);
-  dy=std::max(print->ppiy/dpi,2);
-  py=std::max((dy*dotpercent)/100,1);
+  dx=std::max(print->ppix/pb_dpi,2);
+  px=std::max((dx*pb_dotpercent)/100,1);
+  dy=std::max(print->ppiy/pb_dpi,2);
+  py=std::max((dy*pb_dotpercent)/100,1);
   // Calculate width of the border around the data grid.
   if (print->printborder)
     print->border=dx*16;
@@ -719,7 +719,7 @@ static void Printnextpage(t_printdata *print) {
   uint32_t u,size,pagesize,offset;
   t_data block,cksum;
   //HANDLE hbmpfile;
-  FILE * hbmpfile;
+  FILE *hbmpfile;
   BITMAPFILEHEADER bmfh;
   BITMAPINFO *pbmi;
   // Calculate offset of this page in data.
@@ -993,16 +993,16 @@ void Nextdataprintingstep(t_printdata *print) {
 };
 
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
-void Printfile(char *path,char *bmp) {
+void Printfile(const char *path, const char *bmp) {
   // Stop printing of previous file, if any.
-  //Stopprinting(&printdata);
+  //Stopprinting(&pb_printdata);
   // Prepare descriptor.
-  memset(&printdata,0,sizeof(printdata));
-  strncpy(printdata.infile,path,MAXPATH-1); 
+  memset(&pb_printdata,0,sizeof(pb_printdata));
+  strncpy(pb_printdata.infile,path,MAXPATH-1); 
   if (bmp!=NULL)
-    strncpy(printdata.outbmp,bmp,MAXPATH-1);
+    strncpy(pb_printdata.outbmp,bmp,MAXPATH-1);
   // Start printing.
-  printdata.step=1;
+  pb_printdata.step=1;
   //Updatebuttons(); 
 };
 

@@ -30,6 +30,35 @@ using namespace std;
 
 
 
+// Global forward declarations
+int       pb_resx, pb_resy;        // Printer resolution, dpi (may be 0!)
+t_printdata pb_printdata;          // Print control structure
+int       pb_orientation;          // Orientation of bitmap (-1: unknown)
+t_procdata pb_procdata;            // Descriptor of processed data
+char      pb_infile[MAXPATH];      // Last selected file to read
+char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
+char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
+char      pb_outfile[MAXPATH];     // Last selected data file to save
+char      pb_password[PASSLEN];    // Encryption password
+int       pb_dpi;                  // Dot raster, dots per inch
+int       pb_dotpercent;           // Dot size, percent of dpi
+int       pb_compression;          // 0: none, 1: fast, 2: maximal
+int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+int       pb_printheader;          // Print header and footer
+int       pb_printborder;          // Border around bitmap
+int       pb_autosave;             // Autosave completed files
+int       pb_bestquality;          // Determine best quality
+int       pb_encryption;           // Encrypt data before printing
+int       pb_opentext;             // Enter passwords in open text
+int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
+int       pb_marginleft;           // Left printer page margin
+int       pb_marginright;          // Right printer page margin
+int       pb_margintop;            // Top printer page margin
+int       pb_marginbottom;         // Bottom printer page margin
+ 
+
+
+
 inline bool isSwitchValid(int value)
 {
   return ( value < 0 || value > 1 );
@@ -137,33 +166,33 @@ int main(int argc, char ** argv) {
   try {
     cxxopts::Options options = arguments(argc, argv);
     // set arguments to extern (global) variables
-    dpi = options["dpi"].as<int>();
-    dotpercent = options["dotsize"].as<int>();
-    redundancy = options["redundancy"].as<int>();
-    printheader = ( ! options["no-header"].as<int>() );
-    printborder = options["border"].as<int>(); 
+    pb_dpi = options["dpi"].as<int>();
+    pb_dotpercent = options["dotsize"].as<int>();
+    pb_redundancy = options["redundancy"].as<int>();
+    pb_printheader = ( ! options["no-header"].as<int>() );
+    pb_printborder = options["border"].as<int>(); 
     // decode = !encode
     bool isEncode = options["mode"].as<string>().compare("encode") == 0;
 
     // externs (also have matching values in printdata and/or procdata)
     std::string infile = options["input"].as<string>();
     std::string outfile = options["output"].as<string>();
+    strcpy (::pb_infile, infile.c_str());
+    strcpy (::pb_outbmp, outfile.c_str());
 
-    if( isEncode ) {
-      // begin the process to write the bitmap,
-      // if second arg is not NULL, writes a bmp to outfile
-      t_printdata printdata = Printfile( infile.c_str(), outfile.c_str() );
-        while (printdata.step != 0) {
-          Nextdataprintingstep (&printdata);
+    if (isEncode) {
+      // begin the process to write the bitmap 
+      while (pb_printdata.step != 0) {
+        Nextdataprintingstep (&pb_printdata);
       }
     }
-    else {
-      if (Decodebitmap (infile.c_str()) == 0) {
-          while (procdata.step != 0) {
-            Nextdataprocessingstep (&procdata);
-          }
-      }
-    }
+    //else {
+    //  if (Decodebitmap (infile.c_str()) == 0) {
+    //      while (procdata.step != 0) {
+    //        Nextdataprocessingstep (&procdata);
+    //      }
+    //  }
+    //}
   } 
   catch (const cxxopts::OptionException& e) {
     cerr << "error parsing options: " << e.what() << endl;

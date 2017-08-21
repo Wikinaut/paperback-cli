@@ -1,6 +1,11 @@
 
 /* Author: David Bourgin, 1995 */
 
+#include <stdint.h>
+
+
+
+
 #define DBITLEN        16              // Max. dictionary size is 2**DBITLEN
 #define NBITS          8               // We deal with bytes, aren't we?
 
@@ -21,16 +26,16 @@ static t_dentry  *ddict;               // Pointer to decoding dictionary
 
 static uint      ndict;                // Current number of words in dictionary
 static uchar     *bout;                // Pointer to output buffer
-static ulong     nbout;                // Size of output buffer
-static ulong     nout;                 // Actual number of output bytes
+static uint32_t     nbout;                // Size of output buffer
+static uint32_t     nout;                 // Actual number of output bytes
 static uchar     *bin;                 // Pointer to input buffer
-static ulong     nbin;                 // Size of input buffer
-static ulong     nin;                  // Actual number of input bytes
-static ulong     wrvalue;
-static ulong     rdvalue;
+static uint32_t     nbin;                 // Size of input buffer
+static uint32_t     nin;                  // Actual number of input bytes
+static uint32_t     wrvalue;
+static uint32_t     rdvalue;
 static uint      wrbits;
 static uint      rdbits;
-static ulong     codelen;              // Current number of bits in output code
+static uint32_t     codelen;              // Current number of bits in output code
 
 
 // Write codelen bits to the output buffer.
@@ -48,7 +53,7 @@ void Writecode(uint value) {
 // Compress the input buffer of length nbufin into the output buffer of length
 // nbufout. Function returns the length of the compressed data or -1 if some
 // error was detected during compression.
-int Compress(uchar *bufin,ulong nbufin,uchar *bufout,ulong nbufout) {
+int Compress(uchar *bufin,uint32_t nbufin,uchar *bufout,uint32_t nbufout) {
   t_centry *currnode,*newnode;
   int i;
   ushort symbol;
@@ -146,7 +151,7 @@ uint Readcode(void) {
 // Decompress the input buffer of length nbufin into the output buffer of length
 // nbufout. Function returns the length of the decompressed data or -1 if some
 // error was detected during decompression.
-int Decompress(uchar *bufin,ulong nbufin,uchar *bufout,ulong nbufout) {
+int Decompress(uchar *bufin,uint32_t nbufin,uchar *bufout,uint32_t nbufout) {
   uint i;
   uint prevcode,currcode;
   uint firstchar;
