@@ -18,10 +18,9 @@
 #include <time.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
-#elif __linux__
-#include "Bitmap.h"
 #endif
 #include "bzlib.h"
+#include "Bitmap.h"
 
 
 

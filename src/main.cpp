@@ -191,6 +191,7 @@ int main(int argc, char ** argv) {
     //else {
     //  if (Decodebitmap (infile.c_str()) == 0) {
     //      while (procdata.step != 0) {
+    //        cout << "Step: " << ::pb_procdata.step << endl;
     //        Nextdataprocessingstep (&procdata);
     //      }
     //  }

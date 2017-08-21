@@ -33,11 +33,11 @@
 #include <windows.h>
 #elif __linux__
 #include <sys/stat.h>
-#include "Bitmap.h"
 #endif
 #include <algorithm>
 #include "bzlib.h"
 #include "aes.h"
+#include "Bitmap.h"
 #include "FileAttributes.hpp"
 
 #include "paperbak.h"
