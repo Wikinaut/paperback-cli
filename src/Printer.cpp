@@ -394,16 +394,19 @@ static void Encryptdata(t_printdata *print) {
     return; };
   // Ask for password. If user cancels, skip file.
   Message("Encrypting data...",0);
-  //FIXME if we want encryption, securely get it from user here
-  //if (Confirmpassword()!=0) {          // User cancelled encryption
-  //  Message("",0);
-  //  Stopprinting(print);
-  //  return; };
+  // If we want encryption, securely get it from user here
+  pb_password = getpass("Enter encryption password: ");
+  if (pb_password == NULL) {  // User cancelled encryption
+    Message("No password entered, cancelling BMP creation",0);
+    Stopprinting(print);
+    return; 
+  };
   // Empty password means: leave data unencrypted.
   if (pb_password[0]=='\0') {
     print->encryption=0;
     print->step++;
-    return; };
+    return; 
+  };
   // Encryption routine expects that password is exactly PASSLEN bytes long.
   // Fill rest of the password with zeros.
   n=strlen(pb_password);
