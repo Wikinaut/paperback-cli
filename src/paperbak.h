@@ -18,9 +18,10 @@
 #include <time.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
+#elif __linux__
+#include "Bitmap.h"
 #endif
 #include "bzlib.h"
-#include "Bitmap.h"
 
 
 
@@ -369,7 +370,7 @@ inline void Reporterror(const char *input) {
 
 
 inline void Message(const char *input, int progress) {
-  printf("%s @ %s\%", input, progress);
+  printf("%s @ %d\%", input, progress);
 }
 
 

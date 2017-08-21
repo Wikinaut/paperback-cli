@@ -28,6 +28,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <stdlib.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #elif __linux__
@@ -35,7 +36,6 @@
 #include "Bitmap.h"
 #endif
 #include <algorithm>
-#include <stdlib.h>
 #include "bzlib.h"
 #include "aes.h"
 #include "FileAttributes.hpp"
@@ -321,7 +321,7 @@ static void Readandcompress(t_printdata *print) {
       return;
     }; }
   else {
-    Message("Reading file",(print->readsize+size)*100/print->origsize);
+    Message("Reading file", (print->readsize+size)*100/print->origsize);
     memcpy(print->buf+print->readsize,print->readbuf,size);
     print->readsize+=size; };
   // If all data is read, finish step.

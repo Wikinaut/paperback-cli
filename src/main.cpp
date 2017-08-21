@@ -181,9 +181,11 @@ int main(int argc, char ** argv) {
     strcpy (::pb_outbmp, outfile.c_str());
 
     if (isEncode) {
+      Printfile(::pb_infile, ::pb_outbmp);
       // begin the process to write the bitmap 
-      while (pb_printdata.step != 0) {
-        Nextdataprintingstep (&pb_printdata);
+      while (::pb_printdata.step != 0) {
+        cout << "Step: " << ::pb_printdata.step << endl;
+        Nextdataprintingstep (&::pb_printdata);
       }
     }
     //else {
