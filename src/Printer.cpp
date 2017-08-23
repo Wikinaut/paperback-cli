@@ -196,13 +196,13 @@ static void Preparefiletoprint(t_printdata *print)
   if (modified.dwHighDateTime==0) {
     FileTimePortable ftp;
     ftp.dwLowDateTime = created.dwLowDateTime;
-    ftp.highDateTime  = created.dwHighDateTime;
+    ftp.dwHighDateTime  = created.dwHighDateTime;
     print->modified=ftp;
   }
   else {
     FileTimePortable ftp;
     ftp.dwLowDateTime = modified.dwLowDateTime;
-    ftp.highDateTime  = modified.dwHighDateTime;
+    ftp.dwHighDateTime  = modified.dwHighDateTime;
     print->modified=ftp;
   }
   // Get original (uncompressed) file size.
