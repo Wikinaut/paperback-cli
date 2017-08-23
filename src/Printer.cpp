@@ -193,10 +193,18 @@ static void Preparefiletoprint(t_printdata *print)
   };
   // Get time of last file modification.
   GetFileTime (h, &created, &accessed, &modified);
-  if (modified.dwHighDateTime==0)
-    print->modified=(FileTimePortable)created;
-  else
-    print->modified=(FileTimePortable)modified;
+  if (modified.dwHighDateTime==0) {
+    FileTimePortable ftp;
+    ftp.dwLowDateTime = created.dwLowDateTime;
+    ftp.highDateTime  = created.dwHighDateTime;
+    print->modified=ftp;
+  }
+  else {
+    FileTimePortable ftp;
+    ftp.dwLowDateTime = modified.dwLowDateTime;
+    ftp.highDateTime  = modified.dwHighDateTime;
+    print->modified=ftp;
+  }
   // Get original (uncompressed) file size.
   print->origsize=GetFileSize (h, &l);
   if (print->origsize==0 || print->origsize>MAXSIZE || l!=0) {
