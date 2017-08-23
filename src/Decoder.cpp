@@ -32,6 +32,8 @@
 #include <windows.h>
 #endif
 #include <stdlib.h>
+#include <algorithm>
+#include <math.h>
 #include "bzlib.h"
 #include "aes.h"
 
@@ -63,12 +65,12 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
   d=(amax-amin+16)/32;
   ampl=h[0];
   for (i=0; i<n; i++) {
-    l[i]=ampl=max(ampl-d,h[i]); };
+    l[i]=ampl=std::max(ampl-d,h[i]); };
   amax=0;
   for (i=n-1; i>=0; i--) {
-    ampl=max(ampl-d,l[i]);
+    ampl=std::max(ampl-d,l[i]);
     l[i]=ampl-h[i];
-    amax=max(amax,l[i]); };
+    amax=std::max(amax,l[i]); };
 
 // TRY TO COMPARE WITH SECOND LARGE PEAK?
 
@@ -89,7 +91,7 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
       ampl=l[i]-limit;
       area+=ampl;
       moment+=ampl*i;
-      amax=max(amax,l[i]);
+      amax=std::max(amax,l[i]);
       i++; };
     // Don't process incomplete peaks.
     if (i>=n) break;
@@ -282,10 +284,10 @@ static void Getgridposition(t_procdata *pdata) {
     pd=data+j*stepy*sizex;
     for (i=0; i<nx; i++,pd+=stepx) {
       c=pd[0];         cmin=c;           cmax=c;
-      c=pd[2];         cmin=min(cmin,c); cmax=max(cmax,c);
-      c=pd[sizex+1];   cmin=min(cmin,c); cmax=max(cmax,c);
-      c=pd[2*sizex];   cmin=min(cmin,c); cmax=max(cmax,c);
-      c=pd[2*sizex+2]; cmin=min(cmin,c); cmax=max(cmax,c);
+      c=pd[2];         cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[sizex+1];   cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[2*sizex];   cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[2*sizex+2]; cmin=std::min(cmin,c); cmax=std::max(cmax,c);
       distrx[i]+=cmax-cmin;
       distry[j]+=cmax-cmin;
     };
@@ -525,10 +527,10 @@ static void Preparefordecoding(t_procdata *pdata) {
   // Empirical formula: the larger the angle, the more imprecise is the
   // expected position of the block.
   if (border<=0.0) {
-    border=max(fabs(pdata->xangle),fabs(pdata->yangle))*5.0+0.4;
+    border=std::max(fabs(pdata->xangle),fabs(pdata->yangle))*5.0+0.4;
     pdata->blockborder=border; };
   // Correct sharpness for known dot size. This correction is empirical.
-  dotsize=max(xstep,ystep)/(NDOT+3.0);
+  dotsize=std::max(xstep,ystep)/(NDOT+3.0);
   sharpfactor+=1.3/dotsize-0.1;
   if (sharpfactor<0.0) sharpfactor=0.0;
   else if (sharpfactor>2.0) sharpfactor=2.0;
@@ -554,25 +556,25 @@ static void Preparefordecoding(t_procdata *pdata) {
   pdata->nposy=(int)((sizey+maxyshift)/ystep);
   // Start new quality map. Note that this call doesn't force map to be
   // displayed.
-  Initqualitymap(pdata->nposx,pdata->nposy);
+  //Initqualitymap(pdata->nposx,pdata->nposy);
   // Allocate block buffers.
   dx=xstep*(2.0*border+1.0)+1.0;
   dy=ystep*(2.0*border+1.0)+1.0;
-  pdata->buf1=(uchar *)GlobalAlloc(GMEM_FIXED,dx*dy);
-  pdata->buf2=(uchar *)GlobalAlloc(GMEM_FIXED,dx*dy);
-  pdata->bufx=(int *)GlobalAlloc(GMEM_FIXED,dx*sizeof(int));
-  pdata->bufy=(int *)GlobalAlloc(GMEM_FIXED,dy*sizeof(int));
+  pdata->buf1=(uchar *)malloc(dx*dy);
+  pdata->buf2=(uchar *)malloc(dx*dy);
+  pdata->bufx=(int *)malloc(dx*sizeof(int));
+  pdata->bufy=(int *)malloc(sizeof(int));
   pdata->blocklist=(t_block *)
-    GlobalAlloc(GMEM_FIXED,pdata->nposx*pdata->nposy*sizeof(t_block));
+    malloc(pdata->nposx*pdata->nposy*sizeof(t_block));
   // Check that we have enough memory.
   if (pdata->buf1==NULL || pdata->buf2==NULL ||
     pdata->bufx==NULL || pdata->bufy==NULL || pdata->blocklist==NULL
   ) {
-    if (pdata->buf1!=NULL) GlobalFree((HGLOBAL)pdata->buf1);
-    if (pdata->buf2!=NULL) GlobalFree((HGLOBAL)pdata->buf2);
-    if (pdata->bufx!=NULL) GlobalFree((HGLOBAL)pdata->bufx);
-    if (pdata->bufy!=NULL) GlobalFree((HGLOBAL)pdata->bufy);
-    if (pdata->blocklist!=NULL) GlobalFree((HGLOBAL)pdata->blocklist);
+    if (pdata->buf1!=NULL) free(pdata->buf1);
+    if (pdata->buf2!=NULL) free(pdata->buf2);
+    if (pdata->bufx!=NULL) free(pdata->bufx);
+    if (pdata->bufy!=NULL) free(pdata->bufy);
+    if (pdata->blocklist!=NULL) free(pdata->blocklist);
     Reporterror("Low memory");
     pdata->step=0;
     return; };
@@ -664,7 +666,7 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
         if (i==0 || i==dx-1 || j==0 || j==dy-1)
           *pdest=*psrc;
         else {
-          *pdest=(uchar)max(cmin,min((int)(psrc[0]*(1.0+4.0*sharpfactor)-
+          *pdest=(uchar)std::max(cmin,std::min((int)(psrc[0]*(1.0+4.0*sharpfactor)-
           (psrc[-dx]+psrc[-1]+psrc[1]+psrc[dx])*sharpfactor),cmax));
         };
       };
@@ -833,8 +835,8 @@ static void Decodenextblock(t_procdata *pdata) {
     goto finish;
   // If this is the very first block located on the page, show it in the block
   // display window.
-  if (pdata->ngood==0 && pdata->nbad==0 && pdata->nsuper==0)
-    Displayblockimage(pdata,pdata->posx,pdata->posy,answer,&result);
+  //if (pdata->ngood==0 && pdata->nbad==0 && pdata->nsuper==0)
+  //  Displayblockimage(pdata,pdata->posx,pdata->posy,answer,&result);
   // Analyze answer.
   if (answer>=17) {
     // Error, block is unreadable.
@@ -869,7 +871,7 @@ static void Decodenextblock(t_procdata *pdata) {
     // of quality.
     pdata->nrestored+=answer; };
   // Add block to quality map.
-  Addblocktomap(pdata->posx,pdata->posy,answer);
+  //Addblocktomap(pdata->posx,pdata->posy,answer);
   // Block processed, set new coordinates.
 finish:
   pdata->posx++;
@@ -912,10 +914,10 @@ void Nextdataprocessingstep(t_procdata *pdata) {
     case 0:                            // Idle data
       return;
     case 1:                            // Remove previous images
-      SetWindowPos(hwmain,HWND_TOP,0,0,0,0,
-        SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
-      Initqualitymap(0,0);
-      Displayblockimage(NULL,0,0,0,NULL);
+      //SetWindowPos(hwmain,HWND_TOP,0,0,0,0,
+      //  SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
+      //Initqualitymap(0,0);
+      //Displayblockimage(NULL,0,0,0,NULL);
       pdata->step++;
       break;
     case 2:                            // Determine grid size
@@ -943,30 +945,30 @@ void Nextdataprocessingstep(t_procdata *pdata) {
       break;
     default: break;                    // Internal error
   };
-  if (pdata->step==0) Updatebuttons(); // Right or wrong, decoding finished
+  //if (pdata->step==0) Updatebuttons(); // Right or wrong, decoding finished
 };
 
 // Frees resources allocated by pdata.
 void Freeprocdata(t_procdata *pdata) {
   // Free data.
   if (pdata->data!=NULL) {
-    GlobalFree((HGLOBAL)pdata->data);
+    free(pdata->data);
     pdata->data=NULL; };
   // Free allocated buffers.
   if (pdata->buf1!=NULL) {
-    GlobalFree((HGLOBAL)pdata->buf1);
+    free(pdata->buf1);
     pdata->buf1=NULL; };
   if (pdata->buf2!=NULL) {
-    GlobalFree((HGLOBAL)pdata->buf2);
+    free(pdata->buf2);
     pdata->buf2=NULL; };
   if (pdata->bufx!=NULL) {
-    GlobalFree((HGLOBAL)pdata->bufx);
+    free(pdata->bufx);
     pdata->bufx=NULL; };
   if (pdata->bufy!=NULL) {
-    GlobalFree((HGLOBAL)pdata->bufy);
+    free(pdata->bufy);
     pdata->bufy=NULL; };
   if (pdata->blocklist!=NULL) {
-    GlobalFree((HGLOBAL)pdata->blocklist);
+    free(pdata->blocklist);
     pdata->blocklist=NULL;
   };
 };
@@ -983,9 +985,9 @@ void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
   pdata->sizey=sizey;
   pdata->blockborder=0.0;              // Autoselect
   pdata->step=1;
-  if (bestquality)
+  if (::pb_bestquality)
     pdata->mode|=M_BEST;
-  Updatebuttons();
+  //Updatebuttons();
 };
 
 // Stops bitmap decoding. Data decoded so far is discarded, but resources

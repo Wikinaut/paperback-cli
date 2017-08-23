@@ -34,8 +34,11 @@
 #include <sys/stat.h>
 #endif
 #include <stdlib.h>
+#include <algorithm>
+#include <stdint.h>
 #include "bzlib.h"
 #include "aes.h"
+#include "FileAttributes.hpp"
 
 #include "paperbak.h"
 #include "Resource.h"
@@ -44,15 +47,15 @@
 
 
 // Clears descriptor of processed file
-void Closefproc() {
-  //if (slot<0 || slot>=NFILE)
-  //  return;                            // Error in input data
-  if (fproc.datavalid!=NULL)
-    free(fproc.datavalid);
-  if (fproc.data!=NULL)
-    free(fproc.data);
-  //memset(fproc+slot,0,sizeof(t_fproc));
-  //Updatefileinfo(slot,fproc+slot); //GUI
+void Closefproc(int slot) {
+  if (slot<0 || slot>=NFILE)
+    return;                            // Error in input data
+  if (::pb_fproc[slot].datavalid!=NULL)
+    free(::pb_fproc[slot].datavalid);
+  if (::pb_fproc[slot].data!=NULL)
+    free(::pb_fproc[slot].data);
+  memset(::pb_fproc+slot,0,sizeof(t_fproc));
+  //Updatefileinfo(slot,::pb_fproc+slot); //GUI
 };
 
 
@@ -65,10 +68,12 @@ int Startnextpage(t_superblock *superblock) {
   // Check whether file is already in the list of processed files. If not,
   // initialize new descriptor.
   freeslot=-1;
-  for (slot=0,pf=fproc; slot<NFILE; slot++,pf++) {
+  for (slot=0,pf=::pb_fproc; slot<NFILE; slot++,pf++) {
     if (pf->busy==0) {                 // Empty descriptor
       if (freeslot<0) freeslot=slot;
       continue; };
+
+    
     if (strnicmp(pf->name,superblock->name,64)!=0)
       continue;                        // Different file name
     if (pf->mode!=superblock->mode)
@@ -91,12 +96,12 @@ int Startnextpage(t_superblock *superblock) {
       Reporterror("Maximal number of processed files exceeded");
       return -1; };
     slot=freeslot;
-    pf=fproc+slot;
+    pf=::pb_fproc+slot;
     memset(pf,0,sizeof(t_fproc));
     // Allocate block and recovery tables.
     pf->nblock=(superblock->datasize+NDATA-1)/NDATA;
-    pf->datavalid=(uchar *)calloc(pf->nblock);
-    pf->data=(uchar *)calloc(pf->nblock*NDATA);
+    pf->datavalid=(uchar *)calloc(pf->nblock, sizeof(uchar));
+    pf->data=(uchar *)calloc(pf->nblock*NDATA, sizeof(uchar));
     if (pf->datavalid==NULL || pf->data==NULL) {
       if (pf->datavalid!=NULL) free(pf->datavalid);
       if (pf->data!=NULL) free(pf->data);
@@ -125,12 +130,12 @@ int Startnextpage(t_superblock *superblock) {
     pf->recoveredblocks=0;
     pf->busy=1; };
   // Invalidate page limits and report success.
-  pf=fproc+slot;
+  pf=::pb_fproc+slot;
   pf->page=superblock->page;
   pf->ngroup=superblock->ngroup;
   pf->minpageaddr=0xFFFFFFFF;
   pf->maxpageaddr=0;
-  Updatefileinfo(slot,pf);
+  //Updatefileinfo(slot,pf);
   return slot;
 };
 
@@ -141,14 +146,14 @@ int Addblock(t_block *block,int slot) {
   t_fproc *pf;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
-  pf=fproc+slot;
+  pf=::pb_fproc+slot;
   if (pf->busy==0)
     return -1;                         // Index points to unused descriptor
   // Add block to descriptor.
   if (block->recsize==0) {
     // Ordinary data block.
     i=block->addr/NDATA;
-    if ((ulong)(i*NDATA)!=block->addr)
+    if ((uint32_t)(i*NDATA)!=block->addr)
       return -1;                       // Invalid data alignment
     if (i>=pf->nblock)
       return -1;                       // Data outside the data size
@@ -156,11 +161,11 @@ int Addblock(t_block *block,int slot) {
       memcpy(pf->data+block->addr,block->data,NDATA);
       pf->datavalid[i]=1;              // Valid data
       pf->ndata++; };
-    pf->minpageaddr=min(pf->minpageaddr,block->addr);
-    pf->maxpageaddr=max(pf->maxpageaddr,block->addr+NDATA); }
+    pf->minpageaddr=std::min(pf->minpageaddr,block->addr);
+    pf->maxpageaddr=std::max(pf->maxpageaddr,block->addr+NDATA); }
   else {
     // Data recovery block. I write it to all free locations within the group.
-    if (block->recsize!=(ulong)(pf->ngroup*NDATA))
+    if (block->recsize!=(uint32_t)(pf->ngroup*NDATA))
       return -1;                       // Invalid recovery scope
     i=block->addr/block->recsize;
     if (i*block->recsize!=block->addr)
@@ -172,8 +177,8 @@ int Addblock(t_block *block,int slot) {
       if (pf->datavalid[j]!=0) continue;
       memcpy(pf->data+j*NDATA,block->data,NDATA);
       pf->datavalid[j]=2; };           // Valid recovery data
-    pf->minpageaddr=min(pf->minpageaddr,block->addr);
-    pf->maxpageaddr=max(pf->maxpageaddr,block->addr+block->recsize);
+    pf->minpageaddr=std::min(pf->minpageaddr,block->addr);
+    pf->maxpageaddr=std::max(pf->maxpageaddr,block->addr+block->recsize);
   };
   // Report success.
   return 0;
@@ -182,13 +187,13 @@ int Addblock(t_block *block,int slot) {
 // Processes gathered data. Returns -1 on error, 0 if file is complete and
 // number of pages to scan if there is still missing data. In the last case,
 // fills list of several first remaining pages in file descriptor.
-int Finishpage(int slot,int ngood,int nbad,ulong nrestored) {
+int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   int i,j,r,rmin,rmax,nrec,irec,firstblock,nrempages;
   uchar *pr,*pd;
   t_fproc *pf;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
-  pf=fproc+slot;
+  pf=::pb_fproc+slot;
   if (pf->busy==0)
     return -1;                         // Index points to unused descriptor
   // Update statistics. Note that it grows also when the same page is scanned
@@ -259,9 +264,9 @@ int Finishpage(int slot,int ngood,int nbad,ulong nrestored) {
   };
   if (nrempages<8)
     pf->rempages[nrempages]=0;
-  Updatefileinfo(slot,pf);
+  //Updatefileinfo(slot,pf);
   if (pf->ndata==pf->nblock) {
-    if (autosave==0)
+    if (::pb_autosave==0)
       Message("File restored. Press \"Save\" to save it to disk",0);
     else {
       Message("File complete",0);
@@ -277,7 +282,7 @@ int Finishpage(int slot,int ngood,int nbad,ulong nrestored) {
 int Saverestoredfile(int slot,int force) {
   int n,success;
   ushort filecrc;
-  ulong l,length;
+  uint32_t l,length;
   uchar *bufout,*data,*tempdata;
   t_fproc *pf;
   aes_context ctx;
@@ -285,7 +290,7 @@ int Saverestoredfile(int slot,int force) {
   FILE *hfile;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
-  pf=fproc+slot;
+  pf=::pb_fproc+slot;
   if (pf->busy==0 || pf->nblock==0)
     return -1;                         // Index points to unused descriptor
   if (pf->ndata!=pf->nblock && force==0)
@@ -294,37 +299,38 @@ int Saverestoredfile(int slot,int force) {
   // If data is encrypted, decrypt it to temporary buffer. Decryption in place
   // is possible, but the whole data would be lost if password is incorrect.
   if (pf->mode & PBM_ENCRYPTED) {
-    //FIXME securely get password from user
-    Reporterror("Encryption/Decryption not supported yet");
-    return -1;
-    //if (pf->datasize & 0x0000000F) {
-    //  Reporterror("Encrypted data is not aligned");
-    //  return -1; 
-    //};
-    //if (Getpassword()!=0)
-    //  return -1;                       // User cancelled decryption
-    //tempdata=(uchar *)GlobalAlloc(GMEM_FIXED,pf->datasize);
-    //if (tempdata==NULL) {
-    //  Reporterror("Low memory, can't decrypt data");
-    //  return -1; 
-    //};
-    //n=strlen(password);
-    //while (n<PASSLEN) password[n++]=0;
-    //memset(&ctx,0,sizeof(ctx));
-    //aes_set_key(&ctx,(uchar *)password,256);
-    //for (l=0; l<pf->datasize; l+=16)
-    //  aes_decrypt(&ctx,pf->data+l,tempdata+l);
-    //filecrc=Crc16(tempdata,pf->datasize);
-    //if (filecrc!=pf->filecrc) {
-    //  Reporterror("Invalid password, please try again");
-    //  GlobalFree((HGLOBAL)tempdata);
-    //  return -1; 
-    //}
-    //else {
-    //  GlobalFree((HGLOBAL)pf->data);
-    //  pf->data=tempdata;
-    //  pf->mode&=~PBM_ENCRYPTED;
-    //};
+    if (pf->datasize & 0x0000000F) {
+      Reporterror("Encrypted data is not aligned");
+      return -1; 
+    };
+
+    if (Getpassword()!=0) {
+      Reporterror("Cancelling bitmap decoding");
+      return -1;                       // User cancelled decryption
+    }
+
+    tempdata=(uchar *)malloc(pf->datasize);
+    if (tempdata==NULL) {
+      Reporterror("Low memory, can't decrypt data");
+      return -1; 
+    };
+    n=strlen(::pb_password);
+    while (n<PASSLEN) ::pb_password[n++]=0;
+    memset(&ctx,0,sizeof(ctx));
+    aes_set_key(&ctx,(uchar *)::pb_password,256);
+    for (l=0; l<pf->datasize; l+=16)
+      aes_decrypt(&ctx,pf->data+l,tempdata+l);
+    filecrc=Crc16(tempdata,pf->datasize);
+    if (filecrc!=pf->filecrc) {
+      Reporterror("Invalid password, please try again");
+      free (tempdata);
+      return -1; 
+    }
+    else {
+      free (pf->data);
+      pf->data=tempdata;
+      pf->mode&=~PBM_ENCRYPTED;
+    };
   };
   // If data is compressed, unpack it to temporary buffer.
   if ((pf->mode & PBM_COMPRESSED)==0) {
@@ -336,32 +342,32 @@ int Saverestoredfile(int slot,int force) {
     // Data is compressed. Create temporary buffer.
     if (pf->origsize==0)
       pf->origsize=pf->datasize*4;     // Weak attempt to recover
-    bufout=(uchar *)GlobalAlloc(GMEM_FIXED,pf->origsize);
+    bufout=(uchar *)malloc(pf->origsize);
     if (bufout==NULL) {
       Reporterror("Low memory");
       return -1; };
     // Unpack data.
     length=pf->origsize;
     success=BZ2_bzBuffToBuffDecompress((char *)bufout,(uint *)&length,
-      pf->data,pf->datasize,0,0);
+      (char*)pf->data,pf->datasize,0,0);
     if (success!=BZ_OK) {
-      GlobalFree((HGLOBAL)bufout);
+      free (bufout);
       Reporterror("Unable to unpack data");
       return -1; };
     data=bufout; };
   // Ask user for file name.
   // FIXME selectoutfile must be initialized prior/by arg
   if (pf->name!=NULL) {    
-    if (bufout!=NULL) GlobalFree((HGLOBAL)bufout);
+    if (bufout!=NULL) free (bufout);
     return -1; 
   };
   // Open file and save data.
-  //hfile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
+  //hfile=CreateFile(::pb_outfile,GENERIC_WRITE,0,NULL,
   //  CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-  hfile = fopen (outfile, "wb");
+  hfile = fopen (::pb_outfile, "wb");
   if (hfile==NULL) {
     if (bufout!=NULL) 
-      free(bufout);
+      free (bufout);
     Reporterror("Unable to create file");
     return -1; 
   };
@@ -371,7 +377,7 @@ int Saverestoredfile(int slot,int force) {
   // Restore old modification date and time.
 #ifdef _WIN32
   // open HANDLE and set file time
-  handleFile=CreateFile(outfile,GENERIC_WRITE,0,NULL,
+  handleFile=CreateFile(::pb_outfile,GENERIC_WRITE,0,NULL,
     CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
   if (handleFile==INVALID_HANDLE_VALUE) {
     if (bufout!=NULL) 
@@ -382,7 +388,7 @@ int Saverestoredfile(int slot,int force) {
   SetFileTime(handleFile,&pf->modified,&pf->modified,&pf->modified);
   // Close file and restore old basic attributes.
   CloseHandle(hfile);
-  SetFileAttributes(outfile,pf->attributes);
+  SetFileAttributes(::pb_outfile,pf->attributes);
   if (bufout!=NULL) 
     free(bufout);
   if (l!=length) {
@@ -400,4 +406,5 @@ int Saverestoredfile(int slot,int force) {
   Message("File saved",0);
   return 0;
 };
+
 

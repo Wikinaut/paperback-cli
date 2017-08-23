@@ -13,14 +13,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include <ctype.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif
 #include "bzlib.h"
 #include "Bitmap.h"
+#include "FileAttributes.hpp"
 
 
 
@@ -93,11 +96,7 @@ typedef struct __attribute__ ((packed)) t_superdata { // Id block on paper
   uchar          mode;                 // Special mode bits, set of PBM_xxx
   uchar          attributes;           // Basic file attributes
   ushort         page;                 // Actual page (1-based)
-#if defined(_WIN32) || defined(__CYGWIN__)
-  FILETIME       modified;             // last modify time
-#elif __linux__
-  time_t         modified;             // last modify time
-#endif
+  FileTimePortable modified;           // last modify time
   ushort         filecrc;              // CRC of compressed decrypted file
   char           name[FILENAME_SIZE];  // File name - may have all 64 chars
   ushort         crc;                  // Cyclic redundancy of previous fields
@@ -120,11 +119,7 @@ typedef struct t_superblock {          // Identification block in memory
   uint32_t       origsize;             // Size of original (uncompressed) data
   uint32_t       mode;                 // Special mode bits, set of PBM_xxx
   ushort         page;                 // Actual page (1-based)
-#if defined(_WIN32) || defined(__CYGWIN__)
-  FILETIME       modified;             // last modify time
-#elif __linux__
-  time_t         modified;             // last modify time
-#endif
+  FileTimePortable modified;           // last modify time
   uint32_t       attributes;           // Basic file attributes
   uint32_t       filecrc;              // 16-bit CRC of decrypted packed file
   char           name[FILENAME_SIZE];  // File name - may have all 64 chars
@@ -155,11 +150,7 @@ typedef struct t_printdata {           // Print control structure
   char           infile[MAXPATH];      // Name of input file
   char           outbmp[MAXPATH];      // Name of output bitmap (empty: paper)
   FILE           *hfile;               // (Formerly HANDLE) file pointer
-#if defined(_WIN32) || defined(__CYGWIN__)
-  FILETIME       modified;             // last modify time
-#elif __linux__
-  time_t         modified;             // last modify time
-#endif
+  FileTimePortable modified;           // last modify time
   uint32_t       attributes;           // File attributes
   uint32_t       origsize;             // Original file size, bytes
   uint32_t       readsize;             // Amount of data read from file so far
@@ -197,6 +188,7 @@ typedef struct t_printdata {           // Print control structure
   int            px,py;                // Dot size, pixels
   int            nx,ny;                // Grid dimensions, blocks
   int            border;               // Border around the data grid, pixels
+  //FIXME bitmap file pointer needed?
   //HBITMAP        hbmp;                 // Handle of memory bitmap
   uchar          *dibbits;             // Pointer to DIB bits
   uchar          *drawbits;            // Pointer to file bitmap bits
@@ -281,11 +273,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            busy;                 // In work
   // General file data.
   char           name[64];             // File name - may have all 64 chars
-#if defined(_WIN32) || defined(__CYGWIN__)
-  FILETIME       modified;             // last modify time
-#elif __linux__
-  time_t         modified;             // last modify time
-#endif
+  FileTimePortable modified;           // last modify time
   uint32_t       attributes;           // Basic file attrributes
   uint32_t       datasize;             // Size of (compressed) data
   uint32_t       pagesize;             // Size of (compressed) data on page
@@ -311,7 +299,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            rempages[8];          // 1-based list of remaining pages
 } t_fproc;
 
-extern t_fproc   pb_fproc[NFILE];         // Processed files
+extern t_fproc   pb_fproc[NFILE];             // Processed file
 
 void   Closefproc(int slot);
 int    Startnextpage(t_superblock *superblock);
@@ -353,26 +341,43 @@ extern int       pb_marginright;          // Right printer page margin
 extern int       pb_margintop;            // Top printer page margin
 extern int       pb_marginbottom;         // Bottom printer page margin
   
-void   Options(void);
-int    Confirmpassword();
-int    Getpassword(void);
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// SERVICE FUNCTIONS ///////////////////////////////
 
 
-inline void Reporterror(const char *input) {
+inline void Reporterror(const char *input) 
+{
   printf("%s\n", input);
 }
 
 
 
-inline void Message(const char *input, int progress) {
+inline void Message(const char *input, int progress) 
+{
   printf("%s @ %d\%", input, progress);
 }
 
 
+
+// Formerly standard case insentitive cstring compare
+inline int strnicmp (const char *str1, const char *str2, size_t len)
+{
+  char s1[len], s2[len];
+  strcpy (s1, str1);
+  strcpy (s2, str2);
+  for (int i = 0; i < len; i++) {
+      s1[i] = tolower(s1[i]);
+      s2[i] = tolower(s1[i]);
+      if (s1[i] < s2[i])      //s1 less than s2, return negative
+        return -1;
+      else if (s1[i] > s2[i]) //s1 more than s2, return positive
+        return 1;
+  }
+
+  // if all characters are the same, return 0
+  return 0;
+}
 
 
 // Portable version of Borlands fnsplit
@@ -382,77 +387,85 @@ inline int fnsplit(const char *path,
                    char *drive, 
                    char *dir, 
                    char *name,
-                   char *ext,
-                   int pathLen) 
+                   char *ext) 
 {
   int i = 0;  // for loop iterator set after drive letter, if needed
-  if (path != NULL &&  pathLen > 2 && path[1] == ':') {
-    if (drive != NULL)
-      strcat (drive, path);
-    i = 2;
-  }
+  if (path != NULL) {
+    if (MAXPATH > 2 && path[1] == ':') {
+      if (drive != NULL) {
+        strncat (drive, path, 2);
+        drive[2] = '\0';
+      }
+      i = 2;
+    }
 
-  // path not necessarily terminated by \0
-  // parse char by char
-  char token[pathLen];
-  int iToken = 0;
-  bool hasName = false;
-  for ( ; i < pathLen; i++) {
-    // if delimiter, act accordingly
-    // token is part of the directory
-    if (path[i] == '/' || path[i] == '\\') {
-      token[iToken++] = path[i];
-      token[iToken++] = '\0';
-      if (dir != NULL) 
-        strcat (dir, token);
-      iToken = 0;
-      continue;
-    }
-    // token is name
-    else if (path[i] == '.') {
-      hasName = true;
-      token[iToken] = '\0';
-      if (name != NULL)
-        strcat (name, token);
-      iToken = 0;
-      continue;
-    }
-    // token is name or extension
-    else if (path[i] == '\0' || i >= pathLen - 1 ) {
-      if (hasName) {
-        // is extension 
+    // path not necessarily terminated by \0
+    // parse char by char
+    char token[MAXPATH];
+    int iToken = 0;
+    bool hasName = false;
+    if (dir != NULL)
+      dir[0] = '\0';
+
+    for ( ; i < MAXPATH; i++) {
+      // if delimiter, act accordingly
+      // token is part of the directory
+      if (path[i] == '/' || path[i] == '\\') {
+        token[iToken++] = path[i];
+        token[iToken++] = '\0';
+        if (dir != NULL) 
+          strcat (dir, token);
+        iToken = 0;
+        continue;
+      }
+      // token is name
+      else if (path[i] == '.') {
+        hasName = true;
         token[iToken] = '\0';
-        if (ext != NULL)  
-          strcat (ext, token);
-        // all parts gathered, exit function
-        break;
-      } 
-      else {
-        // is name
-        token[i] = '\0';
         if (name != NULL)
-          strcat (name, token);
-        // all parts gathered, exit
-        break;
+          strcpy (name, token);
+        token[0] = '.';
+        iToken = 1;
+        continue;
+      }
+      // token is name or extension
+      else if (path[i] == '\0' || i >= MAXPATH - 1 ) {
+        if (hasName) {
+          // is extension 
+          token[iToken] = '\0';
+          if (ext != NULL)  
+            strcpy (ext, token);
+          // all parts gathered, exit function
+          break;
+        } 
+        else {
+          // is name
+          token[i] = '\0';
+          if (name != NULL)
+            strcpy (name, token);
+          // all parts gathered, exit
+          break;
+        }
+      }
+      else {
+        //if not delimiter, build string
+        token[iToken++] = path[i]; 
       }
     }
-    else {
-    //if not delimiter, build string
-    token[iToken++] = path[i]; 
-    }
+    return 0;
   }
-  
-  return 0;
+  else 
+    return -1;
 }
 
 
 
 // Portable version of Borlands fnmerge
 inline void fnmerge (char *path,
-              const char *drive,
-              const char *dir,
-              const char *name,
-              const char * ext)
+    const char *drive,
+    const char *dir,
+    const char *name,
+    const char * ext)
 {
   if (path == NULL) {
     return;
@@ -474,6 +487,27 @@ inline void fnmerge (char *path,
   }
 }
 
+
+// returns 0 on success, -1 on failure
+inline int Getpassword()
+{
+  char * pw = getpass("Enter encryption password: ");
+  int pwLength = strlen(pw);
+
+  if (pwLength > 0 && pwLength <= (PASSLEN - 1) ) {
+    // put password into global password variable
+    strcpy (::pb_password, pw);
+    // overwrite pw for security
+    memset (pw, 0, pwLength);
+    return 0;
+  }
+  else {
+    Reporterror("Password must be 32 characters or less");
+    // overwrite pw for security
+    memset (pw, 0, pwLength);
+    return -1;
+  }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -499,16 +533,6 @@ inline void print_filetime(FILETIME ftime) {
       printf("%s\n", str);
     }
 }
-
-inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
-  int l;
-  SYSTEMTIME sttime;
-  FileTimeToSystemTime(fttime,&sttime);
-  l=GetDateFormat(LOCALE_USER_DEFAULT,DATE_SHORTDATE,&sttime,NULL,s,n);
-  s[l-1]=' ';                          // Yuck, that's Windows
-  l+=GetTimeFormat(LOCALE_USER_DEFAULT,TIME_NOSECONDS,&sttime,NULL,s+l,n-l);
-  return l;
-};
 
 #endif
 

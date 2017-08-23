@@ -28,12 +28,12 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #elif __linux__
 #include <sys/stat.h>
 #endif
+#include <stdlib.h>
 #include <algorithm>
 #include "bzlib.h"
 #include "aes.h"
@@ -194,9 +194,9 @@ static void Preparefiletoprint(t_printdata *print)
   // Get time of last file modification.
   GetFileTime (h, &created, &accessed, &modified);
   if (modified.dwHighDateTime==0)
-    print->modified=created;
+    print->modified=(FileTimePortable)created;
   else
-    print->modified=modified;
+    print->modified=(FileTimePortable)modified;
   // Get original (uncompressed) file size.
   print->origsize=GetFileSize (h, &l);
   if (print->origsize==0 || print->origsize>MAXSIZE || l!=0) {
@@ -212,9 +212,10 @@ static void Preparefiletoprint(t_printdata *print)
     Stopprinting(print);
     return;
   }
-  print->attributes = (uint32_t)fileInfo.st_mode;
+  uint32_t mode = (uint32_t)fileInfo.st_mode;
+  print->attributes = FileAttributes::convertToWindowsAttributes(mode);
   // Get time of last file modification.
-  print->modified = fileInfo.st_mtime;
+  print->modified = FileAttributes::convertToFileTime(fileInfo.st_mtime);
   // Get original (uncompressed) file size.
   print->origsize = fileInfo.st_size;
   if (print->origsize==0 || print->origsize>MAXSIZE) {
@@ -267,7 +268,8 @@ static void Preparecompressor(t_printdata *print) {
   // Check whether compression is requested at all.
   if (print->compression==0) {
     print->step++;
-    return; };
+    return; 
+  };
   // Initialize compressor. On error, I silently disable compression.
   memset(&print->bzstream,0,sizeof(print->bzstream));
   success=BZ2_bzCompressInit(&print->bzstream,
@@ -294,7 +296,7 @@ static void Readandcompress(t_printdata *print) {
   //success=ReadFile(print->hfile,print->readbuf,size,&l,NULL);
   l = fread ((void*)print->readbuf, sizeof(uchar), size, print->hfile);
                     
-  if (success==0 || l!=size) {
+  if (l!=size) {
     Reporterror("Unable to read file");
     Stopprinting(print);
     return; };
@@ -395,18 +397,13 @@ static void Encryptdata(t_printdata *print) {
   // Ask for password. If user cancels, skip file.
   Message("Encrypting data...",0);
   // If we want encryption, securely get it from user here
-  pb_password = getpass("Enter encryption password: ");
-  if (pb_password == NULL) {  // User cancelled encryption
-    Message("No password entered, cancelling BMP creation",0);
-    Stopprinting(print);
-    return; 
-  };
-  // Empty password means: leave data unencrypted.
-  if (pb_password[0]=='\0') {
+  if (Getpassword() != 0) {
+    Reporterror("Cancelling encryption and continuing");
     print->encryption=0;
     print->step++;
     return; 
-  };
+  }
+
   // Encryption routine expects that password is exactly PASSLEN bytes long.
   // Fill rest of the password with zeros.
   n=strlen(pb_password);
@@ -449,7 +446,7 @@ static void Initializeprinting(t_printdata *print) {
 #endif
   print->superdata.modified=print->modified;
   print->superdata.filecrc=(ushort)print->bufcrc;
-  fnsplit(print->infile,NULL,NULL,nam,ext, MAXPATH);
+  fnsplit(print->infile,NULL,NULL,nam,ext);
   fnmerge(fil,NULL,NULL,nam,ext);
   // Note that name in superdata may be not null-terminated.
   strncpy(print->superdata.name,fil,sizeof(print->superdata.name));
@@ -999,14 +996,14 @@ void Nextdataprintingstep(t_printdata *print) {
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
 void Printfile(const char *path, const char *bmp) {
   // Stop printing of previous file, if any.
-  //Stopprinting(&pb_printdata);
+  Stopprinting(&::pb_printdata);
   // Prepare descriptor.
-  memset(&pb_printdata,0,sizeof(pb_printdata));
-  strncpy(pb_printdata.infile,path,MAXPATH-1); 
+  memset(&::pb_printdata,0,sizeof(pb_printdata));
+  strncpy(::pb_printdata.infile,path,MAXPATH-1); 
   if (bmp!=NULL)
-    strncpy(pb_printdata.outbmp,bmp,MAXPATH-1);
+    strncpy(::pb_printdata.outbmp,bmp,MAXPATH-1);
   // Start printing.
-  pb_printdata.step=1;
+  ::pb_printdata.step=1;
   //Updatebuttons(); 
 };
 

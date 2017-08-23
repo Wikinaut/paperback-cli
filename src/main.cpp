@@ -31,6 +31,7 @@ using namespace std;
 
 
 // Global forward declarations
+t_fproc   pb_fproc[NFILE];        // Processed file
 int       pb_resx, pb_resy;        // Printer resolution, dpi (may be 0!)
 t_printdata pb_printdata;          // Print control structure
 int       pb_orientation;          // Orientation of bitmap (-1: unknown)
@@ -178,25 +179,27 @@ int main(int argc, char ** argv) {
     std::string infile = options["input"].as<string>();
     std::string outfile = options["output"].as<string>();
     strcpy (::pb_infile, infile.c_str());
-    strcpy (::pb_outbmp, outfile.c_str());
 
     if (isEncode) {
+      strcpy (::pb_outbmp, outfile.c_str());
       Printfile(::pb_infile, ::pb_outbmp);
       // begin the process to write the bitmap 
       while (::pb_printdata.step != 0) {
-        cout << "Step: " << ::pb_printdata.step << endl;
+        //cout << "Step: " << ::pb_printdata.step << endl;
         Nextdataprintingstep (&::pb_printdata);
       }
     }
-    //else {
-    //  if (Decodebitmap (infile.c_str()) == 0) {
-    //      while (procdata.step != 0) {
-    //        cout << "Step: " << ::pb_procdata.step << endl;
-    //        Nextdataprocessingstep (&procdata);
-    //      }
-    //  }
-    //}
-  } 
+    else {
+      strcpy (::pb_outfile, outfile.c_str());
+      Decodebitmap (::pb_infile);
+      while (::pb_procdata.step != 0) {
+        //cout << "Step: " << ::pb_procdata.step << endl;
+        Nextdataprocessingstep (&::pb_procdata);
+      }
+    }
+
+    return 0;
+  }
   catch (const cxxopts::OptionException& e) {
     cerr << "error parsing options: " << e.what() << endl;
     exit(1);
