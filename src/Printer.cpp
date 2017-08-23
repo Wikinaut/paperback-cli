@@ -454,9 +454,13 @@ static void Initializeprinting(t_printdata *print) {
 #endif
   print->superdata.modified=print->modified;
   print->superdata.filecrc=(ushort)print->bufcrc;
-  fnsplit(print->infile,NULL,NULL,nam,ext);
-  fnmerge(fil,NULL,NULL,nam,ext);
+  int flags = fnsplit(print->infile,NULL,NULL,nam,ext);
+  if (flags & EXTENSION)
+    fnmerge(fil,NULL,NULL,nam,ext);
+  else
+    fnmerge(fil,NULL,NULL,nam,NULL);
   // Note that name in superdata may be not null-terminated.
+  printf("Encoding %s to bitmap\n", fil);
   strncpy(print->superdata.name,fil,sizeof(print->superdata.name));
   // If printing to paper, ask user to select printer and, if necessary, adjust
   // parameters. I do not enforce high quality or high resolution - the user is

@@ -32,17 +32,23 @@
 ///////////////////////////// GENERAL DEFINITIONS //////////////////////////////
 
 // Values set by Borland compiler
-#define MAXPATH  80
-#define MAXFILE  9 
-#define MAXEXT   5    
-#define MAXDIR   66 
 #define MAXDRIVE 3
+// For 16-bit cpu
+//#define MAXPATH  80
+//#define MAXDIR   66 
+//#define MAXFILE  9 
+//#define MAXEXT   5    
+// For 32-bit cpu  (#if defined(__FLAT__))
+#define MAXPATH   260
+#define MAXDIR    256
+#define MAXFILE   256
+#define MAXEXT    256
 // For Borlands fnsplit function
-#define EXTENSION 0
-#define FILENAME  1
-#define DIRECTORY 2
-#define DRIVE     3
-#define WILDCARDS 4
+#define WILDCARDS 0x01
+#define EXTENSION 0x02
+#define FILENAME  0x04
+#define DIRECTORY 0x08
+#define DRIVE     0x10
 
 // Size required by Reed-Solomon ECC
 #define ECC_SIZE 32
@@ -361,7 +367,7 @@ inline void Reporterror(const char *input)
 
 inline void Message(const char *input, int progress) 
 {
-  printf("%s @ %d\%", input, progress);
+  printf("%s @ %d\%\n", input, progress);
 }
 
 
@@ -390,6 +396,7 @@ inline int strnicmp (const char *str1, const char *str2, size_t len)
 // RETURNS: bitvector of what components were found in path, regardless of 
 //          which arguments were NULL
 // NOTE: Does not handle wildcard *
+// NOTE: Like the original, assumes argument cstrings of specific defined lengths
 inline int fnsplit(const char *path, 
                    char *drive, 
                    char *dir, 
@@ -399,7 +406,7 @@ inline int fnsplit(const char *path,
   int i = 0;  // for loop iterator set after drive letter, if needed
   int flags = 0;
   if (path != NULL) {
-    if (MAXPATH > 2 && path[1] == ':') {
+    if (path[1] == ':') {
       flags |= DRIVE;
       if (drive != NULL) {
         strncat (drive, path, 2);
@@ -412,6 +419,7 @@ inline int fnsplit(const char *path,
     // parse char by char
     char token[MAXPATH];
     int iToken = 0;
+    //int extCount = 0;
     if (dir != NULL)
       dir[0] = '\0';
 
@@ -430,18 +438,21 @@ inline int fnsplit(const char *path,
       // token is name
       else if (path[i] == '.') {
         flags |= FILENAME;
+        flags |= EXTENSION;
         token[iToken] = '\0';
         if (name != NULL)
           strcpy (name, token);
         token[0] = '.';
         iToken = 1;
+        //++extCount;
         continue;
       }
       // token is name or extension
-      else if (path[i] == '\0' || i >= MAXPATH - 1 ) {
+      else if (path[i] == '\0' 
+               || i >= MAXPATH - 1 ) {
+               //|| extCount >= MAXEXT - 1) {
         if (flags & FILENAME) {
           // is extension 
-          flags |= EXTENSION;
           token[iToken] = '\0';
           if (ext != NULL)  
             strcpy (ext, token);
@@ -451,7 +462,7 @@ inline int fnsplit(const char *path,
         else {
           // is name
           flags |= FILENAME;
-          token[i] = '\0';
+          token[iToken] = '\0';
           if (name != NULL)
             strcpy (name, token);
           // all parts gathered, exit
@@ -461,6 +472,8 @@ inline int fnsplit(const char *path,
       else {
         //if not delimiter, build string
         token[iToken++] = path[i]; 
+        //if (flags & EXTENSION)
+        //  ++extCount;
       }
     }
   }
@@ -475,7 +488,7 @@ inline void fnmerge (char *path,
                      const char *drive,
                      const char *dir,
                      const char *name,
-                     const char * ext)
+                     const char *ext)
 {
   if (path == NULL)
     return;
