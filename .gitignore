@@ -13,6 +13,7 @@
 
 # executables
 paperback-cli
+*.out
 
 # files from tools
 tags
