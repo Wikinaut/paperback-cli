@@ -163,42 +163,27 @@ cxxopts::Options arguments(int ac, char **av) {
     return o;
 }
 
+
+
 int main(int argc, char ** argv) {
+  bool isEncode;
   try {
     cxxopts::Options options = arguments(argc, argv);
     // set arguments to extern (global) variables
-    pb_dpi = options["dpi"].as<int>();
-    pb_dotpercent = options["dotsize"].as<int>();
-    pb_redundancy = options["redundancy"].as<int>();
-    pb_printheader = ( ! options["no-header"].as<int>() );
-    pb_printborder = options["border"].as<int>(); 
+    ::pb_dpi = options["dpi"].as<int>();
+    ::pb_dotpercent = options["dotsize"].as<int>();
+    ::pb_redundancy = options["redundancy"].as<int>();
+    ::pb_printheader = ( ! options["no-header"].as<int>() );
+    ::pb_printborder = options["border"].as<int>(); 
     // decode = !encode
-    bool isEncode = options["mode"].as<string>().compare("encode") == 0;
+    isEncode = options["mode"].as<string>().compare("encode") == 0;
 
     // externs (also have matching values in printdata and/or procdata)
     std::string infile = options["input"].as<string>();
     std::string outfile = options["output"].as<string>();
     strcpy (::pb_infile, infile.c_str());
-
-    if (isEncode) {
-      strcpy (::pb_outbmp, outfile.c_str());
-      Printfile(::pb_infile, ::pb_outbmp);
-      // begin the process to write the bitmap 
-      while (::pb_printdata.step != 0) {
-        //cout << "Step: " << ::pb_printdata.step << endl;
-        Nextdataprintingstep (&::pb_printdata);
-      }
-    }
-    else {
-      strcpy (::pb_outfile, outfile.c_str());
-      Decodebitmap (::pb_infile);
-      while (::pb_procdata.step != 0) {
-        //cout << "Step: " << ::pb_procdata.step << endl;
-        Nextdataprocessingstep (&::pb_procdata);
-      }
-    }
-
-    return 0;
+    strcpy (::pb_outbmp, outfile.c_str());
+    strcpy (::pb_outfile, outfile.c_str());
   }
   catch (const cxxopts::OptionException& e) {
     cerr << "error parsing options: " << e.what() << endl;
@@ -209,5 +194,22 @@ int main(int argc, char ** argv) {
     exit(1);
   }
 
+  if (isEncode) {
+    Printfile(::pb_infile, ::pb_outbmp);
+    // begin the process to write the bitmap 
+    while (::pb_printdata.step != 0) {
+      //cout << "Step: " << ::pb_printdata.step << endl;
+      Nextdataprintingstep (&::pb_printdata);
+    }
+  }
+  else {
+    Decodebitmap (::pb_infile);
+    while (::pb_procdata.step != 0) {
+      //cout << "Step: " << ::pb_procdata.step << endl;
+      Nextdataprocessingstep (&::pb_procdata);
+    }
+  }
+
   return 0;
 }
+

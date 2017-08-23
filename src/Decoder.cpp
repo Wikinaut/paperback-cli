@@ -217,13 +217,13 @@ static int Recognizebits(t_data *result,uchar grid[NDOT][NDOT],
             case 7: c=grid1[NDOT-1-j][i]; break;
           };
           if (c<limit) {
-            ((ulong *)result)[j]|=1<<i;
+            ((uint32_t *)result)[j]|=1<<i;
           };
         };
       };
       // XOR with grid that corrects mean brightness.
       for (j=0; j<NDOT; j++) {
-        ((ulong *)result)[j]^=(j & 1?0xAAAAAAAA:0x55555555); };
+        ((uint32_t *)result)[j]^=(j & 1?0xAAAAAAAA:0x55555555); };
       // Apply ECC to restore invalid data.
       if (pdata->mode & M_BEST)
         memcpy(&uncorrected,result,sizeof(t_data));
@@ -822,9 +822,10 @@ static void Decodenextblock(t_procdata *pdata) {
   // Display percent of executed data and, if known, data name in progress bar.
   if (pdata->superblock.name[0]=='\0')
     sprintf(s,"Processing image");
-  else
+  else {
     sprintf(s,"%.64s (page %i)",
-    pdata->superblock.name,pdata->superblock.page);
+        pdata->superblock.name,pdata->superblock.page);
+  }
   percent=(pdata->posy*pdata->nposx+pdata->posx)*100/
     (pdata->nposx*pdata->nposy);
   Message(s,percent);

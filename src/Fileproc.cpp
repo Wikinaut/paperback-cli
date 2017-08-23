@@ -106,7 +106,8 @@ int Startnextpage(t_superblock *superblock) {
       if (pf->datavalid!=NULL) free(pf->datavalid);
       if (pf->data!=NULL) free(pf->data);
       Reporterror("Low memory");
-      return -1; };
+      return -1; 
+    };
     // Initialize remaining fields.
     memcpy(pf->name,superblock->name,64);
     pf->modified=superblock->modified;
@@ -201,6 +202,12 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   pf->goodblocks+=ngood;
   pf->badblocks+=nbad;
   pf->restoredbytes+=nrestored;
+
+  printf("ngood: %d", pb_procdata.ngood);
+  printf("nbad: %d", pb_procdata.nbad);
+  printf("nsuper: %d", pb_procdata.nsuper);
+  printf("nrestored: %d", pb_procdata.nrestored);
+
   // Restore bad blocks if corresponding recovery blocks are available (max. 1
   // per group).
   if (pf->ngroup>0) {
@@ -266,8 +273,10 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
     pf->rempages[nrempages]=0;
   //Updatefileinfo(slot,pf);
   if (pf->ndata==pf->nblock) {
-    if (::pb_autosave==0)
-      Message("File restored. Press \"Save\" to save it to disk",0);
+    if (::pb_autosave==0) {
+      Message("File restored.",0);
+      Saverestoredfile(slot,0);
+    }
     else {
       Message("File complete",0);
       Saverestoredfile(slot,0);
@@ -357,10 +366,10 @@ int Saverestoredfile(int slot,int force) {
     data=bufout; };
   // Ask user for file name.
   // FIXME selectoutfile must be initialized prior/by arg
-  if (pf->name!=NULL) {    
-    if (bufout!=NULL) free (bufout);
-    return -1; 
-  };
+  //if (pf->name!=NULL) {    
+  //  if (bufout!=NULL) free (bufout);
+  //  return -1; 
+  //};
   // Open file and save data.
   //hfile=CreateFile(::pb_outfile,GENERIC_WRITE,0,NULL,
   //  CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);

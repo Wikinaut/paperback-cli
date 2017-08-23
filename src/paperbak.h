@@ -419,7 +419,6 @@ inline int fnsplit(const char *path,
     // parse char by char
     char token[MAXPATH];
     int iToken = 0;
-    //int extCount = 0;
     if (dir != NULL)
       dir[0] = '\0';
 
@@ -444,7 +443,6 @@ inline int fnsplit(const char *path,
           strcpy (name, token);
         token[0] = '.';
         iToken = 1;
-        //++extCount;
         continue;
       }
       // token is name or extension
@@ -472,8 +470,6 @@ inline int fnsplit(const char *path,
       else {
         //if not delimiter, build string
         token[iToken++] = path[i]; 
-        //if (flags & EXTENSION)
-        //  ++extCount;
       }
     }
   }
