@@ -18,60 +18,27 @@
 #include <stdlib.h>
 #include <iostream>
 #include <string>
-#include "cxxopts.hpp"
+#include <stdbool.h>
+
 #include "paperbak.h"
 #include "Resource.h"
-
+#include <getopt.h>
 using namespace std;
 
 #define VERSIONHI 1
 #define VERSIONLO 2
 
+#ifdef CXXSCRAP
+#include "cxxopts.hpp"
 
-
-
-// Global forward declarations
-t_fproc   pb_fproc[NFILE];        // Processed file
-int       pb_resx, pb_resy;        // Printer resolution, dpi (may be 0!)
-t_printdata pb_printdata;          // Print control structure
-int       pb_orientation;          // Orientation of bitmap (-1: unknown)
-t_procdata pb_procdata;            // Descriptor of processed data
-char      pb_infile[MAXPATH];      // Last selected file to read
-char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
-char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
-char      pb_outfile[MAXPATH];     // Last selected data file to save
-char      pb_password[PASSLEN];    // Encryption password
-int       pb_dpi;                  // Dot raster, dots per inch
-int       pb_dotpercent;           // Dot size, percent of dpi
-int       pb_compression;          // 0: none, 1: fast, 2: maximal
-int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
-int       pb_printheader;          // Print header and footer
-int       pb_printborder;          // Border around bitmap
-int       pb_autosave;             // Autosave completed files
-int       pb_bestquality;          // Determine best quality
-int       pb_encryption;           // Encrypt data before printing
-int       pb_opentext;             // Enter passwords in open text
-int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
-int       pb_marginleft;           // Left printer page margin
-int       pb_marginright;          // Right printer page margin
-int       pb_margintop;            // Top printer page margin
-int       pb_marginbottom;         // Bottom printer page margin
- 
-
-
-
-inline bool isSwitchValid(int value)
-{
+inline bool isSwitchValid(int value) {
   return ( value < 0 || value > 1 );
 }
-
-
 
 // redundancy 1 to 10
 // dot size 50 to 100
 // dpi 40 to 300
-bool validate(cxxopts::Options &o) 
-{
+bool validate(cxxopts::Options &o) {
     bool is_ok = true;
     if ((o["mode"].as<string>().compare("encode") != 0) && 
          o["mode"].as<string>().compare("decode") != 0) {
@@ -163,12 +130,9 @@ cxxopts::Options arguments(int ac, char **av) {
     return o;
 }
 
-
-
-int main(int argc, char ** argv) {
+bool setglobals(cxxopts::Options &options) {
   bool isEncode;
   try {
-    cxxopts::Options options = arguments(argc, argv);
     // set arguments to extern (global) variables
     ::pb_dpi = options["dpi"].as<int>();
     ::pb_dotpercent = options["dotsize"].as<int>();
@@ -193,7 +157,169 @@ int main(int argc, char ** argv) {
     cerr << "An unexpected error occurred: " << e.what() << endl;
     exit(1);
   }
+    return isEncode;
+}
+#endif
 
+
+// Global forward declarations
+t_fproc   pb_fproc[NFILE];        // Processed file
+int       pb_resx, pb_resy;        // Printer resolution, dpi (may be 0!)
+t_printdata pb_printdata;          // Print control structure
+int       pb_orientation;          // Orientation of bitmap (-1: unknown)
+t_procdata pb_procdata;            // Descriptor of processed data
+char      pb_infile[MAXPATH];      // Last selected file to read
+char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
+char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
+char      pb_outfile[MAXPATH];     // Last selected data file to save
+char      pb_password[PASSLEN];    // Encryption password
+int       pb_dpi;                  // Dot raster, dots per inch
+int       pb_dotpercent;           // Dot size, percent of dpi
+int       pb_compression;          // 0: none, 1: fast, 2: maximal
+int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+int       pb_printheader;          // Print header and footer
+int       pb_printborder;          // Border around bitmap
+int       pb_autosave;             // Autosave completed files
+int       pb_bestquality;          // Determine best quality
+int       pb_encryption;           // Encrypt data before printing
+int       pb_opentext;             // Enter passwords in open text
+int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
+int       pb_marginleft;           // Left printer page margin
+int       pb_marginright;          // Right printer page margin
+int       pb_margintop;            // Top printer page margin
+int       pb_marginbottom;         // Bottom printer page margin
+
+void dhelp() {
+    printf("placeholder - help");
+}
+
+void dversion() {
+    printf("placeholder - version");
+}
+
+int arguments(int ac, char **av) {
+    bool is_ok = true;
+    int displayhelp = 0, displayversion = 0, isencode;
+    struct option long_options[] = {
+        // options that set flags
+        {"help",    no_argument, &displayhelp,      1},
+        {"version", no_argument, &displayversion,   1},
+        {"encode",      no_argument, &isencode, 1},
+        {"decode",      no_argument, &isencode, 0},
+        // options that assign values in switch
+        {"input",       required_argument, NULL, 'i'},
+        {"output",      required_argument, NULL, 'o'},
+        {"dpi",         required_argument, NULL, 'd'},
+        {"dotsize",     required_argument, NULL, 's'},
+        {"redundancy",  required_argument, NULL, 'r'},
+        {"no-header",   no_argument, NULL, 'n'},
+        {"border",      no_argument, NULL, 'b'},
+        {0, 0, 0, 0}
+    };
+    int c;
+    while(is_ok) {
+        int options_index = 0;
+        c = getopt_long(ac, av, "i:o:d:s:r:bn", long_options, &options_index);
+        if (c == -1) {
+            break;
+        }
+        switch(c) {
+            case 0:
+                break;
+            case 'i':
+                if (optarg == NULL) {
+                    fprintf(stderr, "error: arg is NULL ! \n");
+                    is_ok = false;
+                } else {
+                    strcpy (::pb_infile, optarg);
+                }
+                break;
+            case 'o':
+                if (optarg == NULL) {
+                    fprintf(stderr, "error: arg is null \n");
+                    is_ok = false;
+                } else {
+                    strcpy (::pb_outfile, optarg);
+                }
+                break;
+            case 'd':
+                ::pb_dpi         = atoi(optarg);
+                break;
+            case 's':
+                ::pb_dotpercent  = atoi(optarg);
+                break;
+            case 'r':
+                ::pb_redundancy  = atoi(optarg);
+                break;
+            case 'n':
+                ::pb_printheader = !(atoi(optarg));
+                break;
+            case 'b':
+                ::pb_printborder = atoi(optarg);
+                break;
+            default:
+                exit(EXIT_FAILURE);
+        }
+    }
+    if (displayhelp) {
+        dhelp();
+        exit(EXIT_SUCCESS);
+    }
+    if (displayversion) {
+        dversion();
+        exit(EXIT_SUCCESS);
+    }
+    if (strlen(::pb_infile) == 0) {
+        fprintf(stderr, "error: no input file given\n");
+        is_ok = false;
+    }
+    if (strlen(::pb_outfile) == 0) {
+        fprintf(stderr, "error: no output file given\n");
+        is_ok = false;
+    }
+    if (::pb_dotpercent < 50 || ::pb_dotpercent > 100) {
+        fprintf(stderr, "error: invalid dotsize given\n");
+        is_ok = false;
+    }
+    if (::pb_dpi < 40 || ::pb_dpi > 300) {
+        fprintf(stderr, "error: invalid dotsize given\n");
+        is_ok = false;
+    }
+    if (::pb_redundancy < 2 || ::pb_redundancy > 10) {
+        fprintf(stderr, "error: invalid dotsize given\n");
+        is_ok = false;
+    }
+    if (::pb_printheader < 0 || ::pb_printheader > 1) {
+        fprintf(stderr, "error: invalid dotsize given\n");
+        is_ok = false;
+    }
+    if (::pb_printborder < 0 || ::pb_printborder > 1) {
+        fprintf(stderr, "error: invalid dotsize given\n");
+        is_ok = false;
+    }
+    if (!is_ok) {
+        exit(EXIT_FAILURE);
+    }
+    if (isencode) {
+        printf("program is set to encode.\n");
+    } else {
+        printf("program is set to decode.\n");
+    }
+    return isencode;
+}
+
+
+int main(int argc, char ** argv) {
+    // set default values for vars affected by arg. parsing.
+    ::pb_infile[0]   = 0;
+    ::pb_outfile[0]  = 0;
+    ::pb_dpi         = 200;
+    ::pb_dotpercent  = 70;
+    ::pb_redundancy  = 5;
+    ::pb_printheader = 0;
+    ::pb_printborder = 0;
+
+  bool isEncode = arguments(argc, argv);
   if (isEncode) {
     Printfile(::pb_infile, ::pb_outbmp);
     // begin the process to write the bitmap 
