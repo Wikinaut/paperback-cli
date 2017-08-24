@@ -38,7 +38,6 @@
 #include <stdint.h>
 #include "bzlib.h"
 #include "aes.h"
-#include "FileAttributes.hpp"
 
 #include "paperbak.h"
 #include "Resource.h"

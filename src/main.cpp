@@ -240,6 +240,7 @@ int arguments(int ac, char **av) {
                     is_ok = false;
                 } else {
                     strcpy (::pb_outfile, optarg);
+                    strcpy (::pb_outbmp, optarg);
                 }
                 break;
             case 'd':

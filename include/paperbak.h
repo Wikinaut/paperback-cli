@@ -23,7 +23,7 @@
 #endif
 #include "bzlib.h"
 #include "Bitmap.h"
-#include "FileAttributes.hpp"
+#include "FileAttributes.h"
 
 
 

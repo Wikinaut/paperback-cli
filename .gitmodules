@@ -1,6 +1,3 @@
-[submodule "source/cxxopts"]
-	path = src/cxxopts
-	url = https://github.com/jarro2783/cxxopts.git
-[submodule "src/PortLibCpp"]
-	path = src/PortLibCpp
-	url = https://git.teknik.io/suhrke/PortLibCpp.git
+[submodule "lib/PortLibC"]
+	path = lib/PortLibC
+	url = https://git.teknik.io/suhrke/PortLibC.git

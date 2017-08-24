@@ -38,7 +38,7 @@
 #include "bzlib.h"
 #include "aes.h"
 #include "Bitmap.h"
-#include "FileAttributes.hpp"
+#include "FileAttributes.h"
 
 #include "paperbak.h"
 #include "Resource.h"
@@ -221,9 +221,9 @@ static void Preparefiletoprint(t_printdata *print)
     return;
   }
   uint32_t mode = (uint32_t)fileInfo.st_mode;
-  print->attributes = FileAttributes::convertToWindowsAttributes(mode);
+  print->attributes = convertToWindowsAttributes(mode);
   // Get time of last file modification.
-  print->modified = FileAttributes::convertToFileTime(fileInfo.st_mtime);
+  print->modified = convertToFileTime(fileInfo.st_mtime);
   // Get original (uncompressed) file size.
   print->origsize = fileInfo.st_size;
   if (print->origsize==0 || print->origsize>MAXSIZE) {

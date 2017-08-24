@@ -13,9 +13,10 @@
 
 # executables
 paperback-cli
-*.out
+runtests
 
 # files from tools
 tags
 .swp
+.swo
 
