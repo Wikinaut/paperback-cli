@@ -274,7 +274,6 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   if (pf->ndata==pf->nblock) {
     if (::pb_autosave==0) {
       Message("File restored.",0);
-      Saverestoredfile(slot,0);
     }
     else {
       Message("File complete",0);

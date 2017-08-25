@@ -828,7 +828,8 @@ static void Decodenextblock(t_procdata *pdata) {
   }
   percent=(pdata->posy*pdata->nposx+pdata->posx)*100/
     (pdata->nposx*pdata->nposy);
-  Message(s,percent);
+  if (percent % 10 == 0)
+    Message(s,percent);
   // Decode block.
   answer=Decodeblock(pdata,pdata->posx,pdata->posy,&result);
   // If we are unable to locate block, probably we are outside the raster.
