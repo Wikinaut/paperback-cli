@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <stdint.h>
+#include <utime.h>
 #include "bzlib.h"
 #include "aes.h"
 
@@ -202,10 +203,10 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   pf->badblocks+=nbad;
   pf->restoredbytes+=nrestored;
 
-  printf("ngood: %d", pb_procdata.ngood);
-  printf("nbad: %d", pb_procdata.nbad);
-  printf("nsuper: %d", pb_procdata.nsuper);
-  printf("nrestored: %d", pb_procdata.nrestored);
+  printf("\nngood: %d\n", pb_procdata.ngood);
+  printf("nbad: %d\n", pb_procdata.nbad);
+  printf("nsuper: %d\n", pb_procdata.nsuper);
+  printf("nrestored: %d\n\n", pb_procdata.nrestored);
 
   // Restore bad blocks if corresponding recovery blocks are available (max. 1
   // per group).
@@ -404,8 +405,16 @@ int Saverestoredfile(int slot,int force) {
   };
 #elif __linux__
   // Set file time
-  // FIXME left off here 
+  struct stat bmpStat;
+  struct utimbuf newTime;
+  stat(::pb_outfile, &bmpStat);
+  newTime.actime = bmpStat.st_atime;
+  newTime.modtime = convertToPosixTime(pf->modified);
+  utime(::pb_outfile, &newTime);
+
   // Restore mode
+  mode_t mode = convertToPosixAttributes(pf->attributes);
+  chmod (::pb_outfile, convertToPosixAttributes(pf->attributes));
 
 #endif
   // Close file descriptor and report success.
@@ -413,5 +422,4 @@ int Saverestoredfile(int slot,int force) {
   Message("File saved",0);
   return 0;
 };
-
 

@@ -445,13 +445,11 @@ static void Initializeprinting(t_printdata *print) {
     print->superdata.mode|=PBM_COMPRESSED;
   if (print->encryption)
     print->superdata.mode|=PBM_ENCRYPTED;
-#if defined(_WIN32) || defined(__CYGWIN__)
   //mask windows values, otherwise leave *nix mode data alone
   print->superdata.attributes=(uchar)(print->attributes &
     (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|
     FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_ARCHIVE|
     FILE_ATTRIBUTE_NORMAL));
-#endif
   print->superdata.modified=print->modified;
   print->superdata.filecrc=(ushort)print->bufcrc;
   int flags = fnsplit(print->infile,NULL,NULL,nam,ext);

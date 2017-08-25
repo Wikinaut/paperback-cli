@@ -24,6 +24,7 @@
 #include "bzlib.h"
 #include "Bitmap.h"
 #include "FileAttributes.h"
+#include "Borland.h"
 
 
 
@@ -31,31 +32,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// GENERAL DEFINITIONS //////////////////////////////
 
-// Values set by Borland compiler
-#define MAXDRIVE 3
-// For 16-bit cpu
-//#define MAXPATH  80
-//#define MAXDIR   66 
-//#define MAXFILE  9 
-//#define MAXEXT   5    
-// For 32-bit cpu  (#if defined(__FLAT__))
-#define MAXPATH   260
-#define MAXDIR    256
-#define MAXFILE   256
-#define MAXEXT    256
-// For Borlands fnsplit function
-#define WILDCARDS 0x01
-#define EXTENSION 0x02
-#define FILENAME  0x04
-#define DIRECTORY 0x08
-#define DRIVE     0x10
-
 // Size required by Reed-Solomon ECC
 #define ECC_SIZE 32
 
 // Oleh's magic numbers
 #define FILENAME_SIZE 64
-
 
 #define VERSIONHI      1               // Major version
 #define VERSIONLO      2               // Minor version
@@ -391,115 +372,6 @@ inline int strnicmp (const char *str1, const char *str2, size_t len)
   return 0;
 }
 
-
-// Portable version of Borlands fnsplit
-// RETURNS: bitvector of what components were found in path, regardless of 
-//          which arguments were NULL
-// NOTE: Does not handle wildcard *
-// NOTE: Like the original, assumes argument cstrings of specific defined lengths
-inline int fnsplit(const char *path, 
-                   char *drive, 
-                   char *dir, 
-                   char *name,
-                   char *ext) 
-{
-  int i = 0;  // for loop iterator set after drive letter, if needed
-  int flags = 0;
-  if (path != NULL) {
-    if (path[1] == ':') {
-      flags |= DRIVE;
-      if (drive != NULL) {
-        strncat (drive, path, 2);
-        drive[2] = '\0';
-      }
-      i = 2;
-    }
-
-    // path not necessarily terminated by \0
-    // parse char by char
-    char token[MAXPATH];
-    int iToken = 0;
-    if (dir != NULL)
-      dir[0] = '\0';
-
-    for ( ; i < MAXPATH; i++) {
-      // if delimiter, act accordingly
-      // token is part of the directory
-      if (path[i] == '/' || path[i] == '\\') {
-        flags |= DIRECTORY;
-        token[iToken++] = path[i];
-        token[iToken++] = '\0';
-        if (dir != NULL) 
-          strcat (dir, token);
-        iToken = 0;
-        continue;
-      }
-      // token is name
-      else if (path[i] == '.') {
-        flags |= FILENAME;
-        flags |= EXTENSION;
-        token[iToken] = '\0';
-        if (name != NULL)
-          strcpy (name, token);
-        token[0] = '.';
-        iToken = 1;
-        continue;
-      }
-      // token is name or extension
-      else if (path[i] == '\0' 
-               || i >= MAXPATH - 1 ) {
-               //|| extCount >= MAXEXT - 1) {
-        if (flags & FILENAME) {
-          // is extension 
-          token[iToken] = '\0';
-          if (ext != NULL)  
-            strcpy (ext, token);
-          // all parts gathered, exit function
-          break;
-        } 
-        else {
-          // is name
-          flags |= FILENAME;
-          token[iToken] = '\0';
-          if (name != NULL)
-            strcpy (name, token);
-          // all parts gathered, exit
-          break;
-        }
-      }
-      else {
-        //if not delimiter, build string
-        token[iToken++] = path[i]; 
-      }
-    }
-  }
-
-  return flags;
-}
-
-
-
-// Portable version of Borlands fnmerge
-inline void fnmerge (char *path,
-                     const char *drive,
-                     const char *dir,
-                     const char *name,
-                     const char *ext)
-{
-  if (path == NULL)
-    return;
-
-  path[0] = '\0';
-
-  if (drive != NULL)
-    strcat (path, drive);
-  if (dir != NULL)
-    strcat (path, dir);
-  if (name != NULL)
-    strcat (path, name);
-  if (ext != NULL)
-    strcat (path, ext);
-}
 
 
 // returns 0 on success, -1 on failure
