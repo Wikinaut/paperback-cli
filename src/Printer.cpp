@@ -332,7 +332,7 @@ static void Readandcompress(t_printdata *print) {
       return;
     }; }
   else {
-    Message("Reading file", (print->readsize+size)*100/print->origsize);
+    //Message("Reading file", (print->readsize+size)*100/print->origsize);
     memcpy(print->buf+print->readsize,print->readbuf,size);
     print->readsize+=size; };
   // If all data is read, finish step.

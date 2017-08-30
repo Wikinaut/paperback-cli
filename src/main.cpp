@@ -83,11 +83,15 @@ int       pb_marginright;          // Right printer page margin
 int       pb_margintop;            // Top printer page margin
 int       pb_marginbottom;         // Bottom printer page margin
 
+// New globals
+int       pb_npages;
+
 
 // Function prototypes
+int arguments (int ac, char **av);
 void dhelp (const char *exe);
 void dversion();
-int arguments (int ac, char **av);
+void nextBitmap (char *path);
 
 
 
@@ -100,6 +104,7 @@ int main(int argc, char ** argv) {
     ::pb_infile[0]   = '\0';
     ::pb_outfile[0]  = '\0';
     ::pb_outbmp[0]   = '\0';
+    ::pb_npages      = 0;
     ::pb_dpi         = 200;
     ::pb_dotpercent  = 70;
     ::pb_redundancy  = 5;
@@ -124,14 +129,35 @@ int main(int argc, char ** argv) {
         }
     }
     else {
-        printf ("Decoding %s into %s\n", ::pb_infile, ::pb_outfile);
-        Decodebitmap (::pb_infile);
-        while (::pb_procdata.step != 0) {
-            Nextdataprocessingstep (&::pb_procdata);
+        char drv[MAXDRIVE],dir[MAXDIR],nam[MAXFILE],ext[MAXEXT],path[MAXPATH+32];
+        fnsplit (::pb_infile, drv, dir, nam, ext);
+        int i;
+        if (::pb_npages > 0) {
+          for (int i = 0; i < ::pb_npages; i++) {
+            sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,i+1,ext);
+            Decodebitmap (path);
+            while (::pb_procdata.step != 0) {
+              nextBitmap (path);
+            }
+          }
+        }
+        else {
+          sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
+          nextBitmap (path);
         }
     }
 
     return 0;
+}
+
+
+
+inline void nextBitmap (char *path) {
+  printf ("Decoding %s into %s\n", path, ::pb_outfile);
+  Decodebitmap (path);
+  while (::pb_procdata.step != 0) {
+    Nextdataprocessingstep (&::pb_procdata);
+  }
 }
 
 
@@ -141,12 +167,12 @@ inline void dhelp (const char *exe) {
             "Usage:\n"
             "\t%s --encode -i [infile] -o [out].bmp [OPTION...]\n"
             "\t%s --decode -i [in].bmp -o [outfile]\n"
-            "\t%s --decode -f [inputfolder] -o [outfile]\n\n"
+            "\t%s --decode -i [in].bmp -o [outfile] -p [nPages]\n"
             "\t--encode             Create a bitmap from the input file\n"
             "\t--decode             Decode an encoded bitmap/folder of bitmaps\n"
             "\t-i, --input          File to encode to or decode from\n"
             "\t-o, --output         Newly encoded bitmap or decoded file\n"
-            "\t-f, --inputfolder    Directory of bitmaps to decode into a single file\n"
+            "\t-p, --pages          Number of pages (e.g. bitmaps labeled 0001 through 0029)\n"
             "\t-d, --dpi            Dots per inch of the output bitmap (40 to 600)\n"
             "\t-s, --dotsize        Size of the dots in bitmap as percentage of maximum dot\n"
             "\t                     size in pixels, (50 to 100)\n"
@@ -155,7 +181,7 @@ inline void dhelp (const char *exe) {
             "\t-n, --no-header      Disable printing of file name, last modify date and time,\n"
             "\t                     file size, and page number\n"
             "\t-b, --border         Print a black border around the page\n"
-            "\t-v, --version        Display version and information relevant to that version\n"
+            "\t-v, --version        Display version and information about that version\n"
             "\t-h, --help           Display all arguments and program description\n\n",
             "\nEncodes or decodes high-density printable file backups.",
             exe,
@@ -192,7 +218,7 @@ int arguments (int ac, char **av) {
         // options that assign values in switch
         {"input",       required_argument, NULL,  'i'},
         {"output",      required_argument, NULL,  'o'},
-        {"inputfolder", required_argument, NULL,  'f'},
+        {"pages",       required_argument, NULL,  'p'},
         {"dpi",         required_argument, NULL,  'd'},
         {"dotsize",     required_argument, NULL,  's'},
         {"redundancy",  required_argument, NULL,  'r'},
@@ -205,7 +231,7 @@ int arguments (int ac, char **av) {
     int c;
     while(is_ok) {
         int options_index = 0;
-        c = getopt_long (ac, av, "i:o:f:d:s:r:nbvh", long_options, &options_index);
+        c = getopt_long (ac, av, "i:o:p:f:d:s:r:nbvh", long_options, &options_index);
         if (c == -1) {
             break;
         }
@@ -229,34 +255,41 @@ int arguments (int ac, char **av) {
                     strcpy (::pb_outbmp, optarg);
                 }
                 break;
-            case 'f':
+            case 'p':
                 if (optarg == NULL) {
-                    fprintf(stderr, "error: inputfolder arg is null \n");
+                    fprintf(stderr, "error: pages arg is null \n");
                     is_ok = false;
                 } else {
-                    strcpy (::pb_infile, optarg);
+                   ::pb_npages     = atoi(optarg); 
                 }
                 break;
             case 'd':
-                ::pb_dpi         = atoi(optarg);
+                if (optarg != NULL)
+                  ::pb_dpi         = atoi(optarg);
                 break;
             case 's':
-                ::pb_dotpercent  = atoi(optarg);
+                if (optarg != NULL)
+                  ::pb_dotpercent  = atoi(optarg);
                 break;
             case 'r':
-                ::pb_redundancy  = atoi(optarg);
+                if (optarg != NULL)
+                  ::pb_redundancy  = atoi(optarg);
                 break;
             case 'n':
-                ::pb_printheader = !(atoi(optarg));
+                if (optarg != NULL)
+                  ::pb_printheader = !(atoi(optarg));
                 break;
             case 'b':
-                ::pb_printborder = atoi(optarg);
+                if (optarg != NULL)
+                  ::pb_printborder = atoi(optarg);
                 break;
             case 'v':
-                displayversion = true;
+                if (optarg != NULL)
+                  displayversion = true;
                 break;
             case 'h':
-                displayhelp = true;
+                if (optarg != NULL)
+                  displayhelp = true;
                 break;
             default:
                 exit (EXIT_FAILURE);
@@ -276,6 +309,10 @@ int arguments (int ac, char **av) {
     }
     if (strlen (::pb_outfile) == 0) {
         fprintf (stderr, "error: no output file given\n");
+        is_ok = false;
+    }
+    if (::pb_npages < 0 || ::pb_npages > 9999) {
+        fprintf (stderr, "error: invalid number of pages given\n");
         is_ok = false;
     }
     if (::pb_dotpercent < 50 || ::pb_dotpercent > 100) {

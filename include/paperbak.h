@@ -348,7 +348,8 @@ inline void Reporterror(const char *input)
 
 inline void Message(const char *input, int progress) 
 {
-  printf("%s @ %d\%\n", input, progress);
+  //printf("%s @ %d\%\n", input, progress);
+  printf("%s\n", input);
 }
 
 

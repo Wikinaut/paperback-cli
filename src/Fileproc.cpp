@@ -203,10 +203,10 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   pf->badblocks+=nbad;
   pf->restoredbytes+=nrestored;
 
-  printf("\nngood: %d\n", pb_procdata.ngood);
+  printf("ngood: %d\n", pb_procdata.ngood);
   printf("nbad: %d\n", pb_procdata.nbad);
   printf("nsuper: %d\n", pb_procdata.nsuper);
-  printf("nrestored: %d\n\n", pb_procdata.nrestored);
+  printf("nrestored: %d\n", pb_procdata.nrestored);
 
   // Restore bad blocks if corresponding recovery blocks are available (max. 1
   // per group).
@@ -250,11 +250,11 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   for (j=firstblock; j<firstblock+pf->pagesize/NDATA && j<pf->nblock; j++) {
     if (pf->datavalid[j]!=1) break; };
   if (j<firstblock+pf->pagesize/NDATA && j<pf->nblock)
-    Message("Unrecoverable errors on page, please scan it again",0);
+    Message("Unrecoverable errors on page, please scan it again\n",0);
   else if (nbad>0)
-    Message("Page processed, all bad blocks successfully restored",0);
+    Message("Page processed\n, all bad blocks successfully restored",0);
   else
-    Message("Page processed",0);
+    Message("Page processed\n",0);
   // Calculate list of (partially) incomplete pages.
   nrempages=0;
   if (pf->pagesize>0) {

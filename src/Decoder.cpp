@@ -563,7 +563,7 @@ static void Preparefordecoding(t_procdata *pdata) {
   pdata->buf1=(uchar *)malloc(dx*dy);
   pdata->buf2=(uchar *)malloc(dx*dy);
   pdata->bufx=(int *)malloc(dx*sizeof(int));
-  pdata->bufy=(int *)malloc(sizeof(int));
+  pdata->bufy=(int *)malloc(dy*sizeof(int));
   pdata->blocklist=(t_block *)
     malloc(pdata->nposx*pdata->nposy*sizeof(t_block));
   // Check that we have enough memory.
@@ -819,17 +819,18 @@ static void Decodenextblock(t_procdata *pdata) {
   int answer,ngroup,percent;
   char s[TEXTLEN];
   t_data result;
+
   // Display percent of executed data and, if known, data name in progress bar.
-  if (pdata->superblock.name[0]=='\0')
-    sprintf(s,"Processing image");
-  else {
-    sprintf(s,"%.64s (page %i)",
-        pdata->superblock.name,pdata->superblock.page);
-  }
-  percent=(pdata->posy*pdata->nposx+pdata->posx)*100/
-    (pdata->nposx*pdata->nposy);
-  if (percent % 10 == 0)
-    Message(s,percent);
+  //if (pdata->superblock.name[0]=='\0')
+  //  sprintf(s,"Processing image");
+  //else {
+  //  sprintf(s,"%.64s (page %i)",
+  //      pdata->superblock.name,pdata->superblock.page);
+  //}
+  //percent=(pdata->posy*pdata->nposx+pdata->posx)*100/
+  //  (pdata->nposx*pdata->nposy);
+  //  Message(s,percent);
+  
   // Decode block.
   answer=Decodeblock(pdata,pdata->posx,pdata->posy,&result);
   // If we are unable to locate block, probably we are outside the raster.
@@ -923,20 +924,21 @@ void Nextdataprocessingstep(t_procdata *pdata) {
       pdata->step++;
       break;
     case 2:                            // Determine grid size
-      Message("Searching for raster...",0);
+      Message("Searching for raster...", 0);
       Getgridposition(pdata);
       break;
     case 3:                            // Determine min and max intensity
       Getgridintensity(pdata);
       break;
     case 4:                            // Determine step and angle in X
-      Message("Searching for grid lines...",0);
+      Message("Searching for grid lines...", 0);
       Getxangle(pdata);
       break;
     case 5:                            // Determine step and angle in Y
       Getyangle(pdata);
       break;
     case 6:                            // Prepare for data decoding
+      Message("Decoding", 0);
       Preparefordecoding(pdata);
       break;
     case 7:                            // Decode next block of data
