@@ -1,17 +1,18 @@
 #paperback-cli
-Paperback-cli is the crossplatform, backwards-compatible, command line version of Oleh Yuschuk's [PaperBack](http://www.ollydbg.de/Paperbak/index.html). Originally designed to print encoded data directly to paper, it has been simplified to focus on encoding and decoding bitmaps that can be saved printed to any printable media via whatever printing mechanism is available to your system. Recommended for small files such as cryptocurrency wallets, key revocation certificates, password databases, and any other data of a few megabytes or less. While the capacity is small compared to conventional storage media, this program encodes or decodes non-electronic backups characteristically resilient to or unaffected by electromagnetic disturbance, water, and heat.
+Paperback-cli is the crossplatform, backwards-compatible, command line version of Oleh Yuschuk's [PaperBack](http://www.ollydbg.de/Paperbak/index.html). Originally designed to print encoded data directly to paper, it has been simplified to focus on encoding and decoding bitmaps that can be written to any printable media via whatever printing mechanism is available to your system. Recommended for small files such as cryptocurrency wallets, key revocation certificates, password databases, and any other important data only a few megabytes large. While the capacity is small compared to conventional storage media, this program encodes or decodes non-electronic backups characteristically resilient to or unaffected by electromagnetic disturbance, water, and heat.
 
 ####Build Requirements
 * No external dependencies
 
-####Building:
+####Building
 ```bash
         git submodule update --init --recursive
         make
 ```
 
 
-####Encode arbitrary data to bitmap (Compression and encryption recommended):
+####Encode arbitrary data to bitmap 
+[Symmetric encryption](http://www.tutonics.com/2012/11/gpg-encryption-guide-part-4-symmetric.html) and compression recommended prior to encoding
 ```bash
         ./paperback-cli --encode -i [input] -o [output].bmp
 ```
@@ -21,8 +22,14 @@ Paperback-cli is the crossplatform, backwards-compatible, command line version o
         ./paperback-cli --decode -i scanned.bmp -o original.gpg
 ```
 
+####Decode multiple encoded bitmaps
+e.g. scanned_0001.bmp through scanned_0029.bmp
+```bash 
+        ./paperback-cli --decode -i scanned.bmp -o original.gpg -p [nPages]
+```
 
-####List all arguments and settings:
+
+####List all arguments and settings
 ```bash
         ./paperback-cli --help
 ```
