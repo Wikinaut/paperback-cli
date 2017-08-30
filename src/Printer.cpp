@@ -28,6 +28,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #elif __linux__
@@ -905,16 +906,16 @@ static void Printnextpage(t_printdata *print) {
   }
   else {
     // Save bitmap to file. First, get file name.
-    //fnsplit(print->outbmp,drv,dir,nam,ext, MAXPATH);
-    //if (ext[0]=='\0') strcpy(ext,".bmp");
-    //if (npages>1)
-    //  sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,print->frompage+1,ext);
-    //else
-    //  sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
+    fnsplit(print->outbmp,drv,dir,nam,ext);
+    if (ext[0]=='\0') strcpy(ext,".bmp");
+    if (npages>1)
+      sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,print->frompage+1,ext);
+    else
+      sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
     // Create bitmap file.
     //hbmpfile=CreateFile(path,GENERIC_WRITE,0,NULL,
     //  CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-    hbmpfile = fopen (print->outbmp, "wb");
+    hbmpfile = fopen (path, "wb");
     //if (hbmpfile==INVALID_HANDLE_VALUE) //
     if (hbmpfile == NULL) {
       Reporterror("Unable to create bitmap file");

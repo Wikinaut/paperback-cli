@@ -12,9 +12,38 @@
  *       Compiler:  gcc
  *
  *         Author:  scuti@teknik.io
+ *                  surkeh@protonmail.com
  *
  * =====================================================================================
  */
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Data is kept in matrix 32x32 points. It consists of:
+//
+//   4-byte address (combined with redundancy count) or special marker;
+//   90-byte compressed and encrypted data;
+//   2-byte CRC of address and data (CCITT version);
+//   32-byte Reed-Solomon error correction code of the previous 96 bytes.
+//
+// Top left point is the LSB of the low byte of address. Second point in the
+// topmost row is the second bit, etc. I have selected horizontal orientation
+// of bytes because jet printers in draft mode may shift rows in X. This may
+// lead to the loss of 4 bytes, but not 32 at once.
+//
+// Even rows are XORed with 0x55555555 and odd with 0xAAAAAAAA to prevent long
+// lines or columns of zeros or ones in uncompressed data.
+//
+// For each ngroup=redundancy data blocks, program creates one artificial block
+// filled with data which is the XOR of ngroup blocks, additionally XORed with
+// 0xFF. Blocks within the group are distributed through the sheet into the
+// different rows and columns, thus increasing the probability of data recovery,
+// even if some parts are completely missing. Redundancy blocks contain ngroup
+// in the most significant 4 bits.
+//
+////////////////////////////////////////////////////////////////////////////////
+
 #include <stdlib.h>
 #include <getopt.h>
 #include <stdbool.h>
