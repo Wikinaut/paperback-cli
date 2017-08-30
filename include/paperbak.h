@@ -378,22 +378,44 @@ inline int strnicmp (const char *str1, const char *str2, size_t len)
 // returns 0 on success, -1 on failure
 inline int Getpassword()
 {
-  char * pw = getpass("Enter encryption password: ");
-  int pwLength = strlen(pw);
+  // LINUX-ONLY, only gets 8 character long password
+  //char * pw = getpass("Enter encryption password: ");
+  //int pwLength = strlen(pw);
 
+  // Crossplatform
+  char pw[PASSLEN];
+  int pwLength = 0;
+  char ch = '\0';
+  printf ("\033[8m"); //set terminal to hide typing
+  while (pwLength < PASSLEN) {
+    ch = getchar();
+    if (ch == '\r' || ch == '\n' || ch == EOF)
+      break;
+
+    if (pwLength < (PASSLEN - 1)) {
+      pw[pwLength] = ch;
+      pw[pwLength + 1] = '\0';
+    }
+
+    ++pwLength;
+  }
+ 
+  int status = -1;
   if (pwLength > 0 && pwLength <= (PASSLEN - 1) ) {
     // put password into global password variable
     strcpy (::pb_password, pw);
-    // overwrite pw for security
-    memset (pw, 0, pwLength);
-    return 0;
+    status = 0; //success
   }
   else {
     Reporterror("Password must be 32 characters or less");
     // overwrite pw for security
     memset (pw, 0, pwLength);
-    return -1;
+    status = -1; //failure
   }
+  
+  // overwrite pw for security
+  memset (pw, 0, PASSLEN);
+  return status;
 }
 
 
