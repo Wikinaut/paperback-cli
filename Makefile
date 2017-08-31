@@ -3,7 +3,7 @@ SDIR=src
 BZDIR=lib/BZLIB
 AESDIR=lib/AES
 CC=g++
-CFLAGS=-std=c++11 -I"include" -I"lib/PortLibC/include" -I"lib/cxxopts/include" -I"lib/AES" -I"lib/BZLIB"
+CFLAGS=-Wall -std=c++11 -I"include" -I"lib/PortLibC/include" -I"lib/cxxopts/include" -I"lib/AES" -I"lib/BZLIB"
 
 all: main
 
