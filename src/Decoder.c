@@ -32,7 +32,6 @@
 #include <windows.h>
 #endif
 #include <stdlib.h>
-#include <algorithm>
 #include <math.h>
 #include "bzlib.h"
 #include "aes.h"
@@ -65,12 +64,12 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
   d=(amax-amin+16)/32;
   ampl=h[0];
   for (i=0; i<n; i++) {
-    l[i]=ampl=std::max(ampl-d,h[i]); };
+    l[i]=ampl=max(ampl-d,h[i]); };
   amax=0;
   for (i=n-1; i>=0; i--) {
-    ampl=std::max(ampl-d,l[i]);
+    ampl=max(ampl-d,l[i]);
     l[i]=ampl-h[i];
-    amax=std::max(amax,l[i]); };
+    amax=max(amax,l[i]); };
 
 // TRY TO COMPARE WITH SECOND LARGE PEAK?
 
@@ -91,7 +90,7 @@ static float Findpeaks(int *h,int n,float *bestpeak,float *beststep) {
       ampl=l[i]-limit;
       area+=ampl;
       moment+=ampl*i;
-      amax=std::max(amax,l[i]);
+      amax=max(amax,l[i]);
       i++; };
     // Don't process incomplete peaks.
     if (i>=n) break;
@@ -284,10 +283,10 @@ static void Getgridposition(t_procdata *pdata) {
     pd=data+j*stepy*sizex;
     for (i=0; i<nx; i++,pd+=stepx) {
       c=pd[0];         cmin=c;           cmax=c;
-      c=pd[2];         cmin=std::min(cmin,c); cmax=std::max(cmax,c);
-      c=pd[sizex+1];   cmin=std::min(cmin,c); cmax=std::max(cmax,c);
-      c=pd[2*sizex];   cmin=std::min(cmin,c); cmax=std::max(cmax,c);
-      c=pd[2*sizex+2]; cmin=std::min(cmin,c); cmax=std::max(cmax,c);
+      c=pd[2];         cmin=min(cmin,c); cmax=max(cmax,c);
+      c=pd[sizex+1];   cmin=min(cmin,c); cmax=max(cmax,c);
+      c=pd[2*sizex];   cmin=min(cmin,c); cmax=max(cmax,c);
+      c=pd[2*sizex+2]; cmin=min(cmin,c); cmax=max(cmax,c);
       distrx[i]+=cmax-cmin;
       distry[j]+=cmax-cmin;
     };
@@ -527,10 +526,10 @@ static void Preparefordecoding(t_procdata *pdata) {
   // Empirical formula: the larger the angle, the more imprecise is the
   // expected position of the block.
   if (border<=0.0) {
-    border=std::max(fabs(pdata->xangle),fabs(pdata->yangle))*5.0+0.4;
+    border=max(fabs(pdata->xangle),fabs(pdata->yangle))*5.0+0.4;
     pdata->blockborder=border; };
   // Correct sharpness for known dot size. This correction is empirical.
-  dotsize=std::max(xstep,ystep)/(NDOT+3.0);
+  dotsize=max(xstep,ystep)/(NDOT+3.0);
   sharpfactor+=1.3/dotsize-0.1;
   if (sharpfactor<0.0) sharpfactor=0.0;
   else if (sharpfactor>2.0) sharpfactor=2.0;
@@ -666,7 +665,7 @@ int Decodeblock(t_procdata *pdata,int posx,int posy,t_data *result) {
         if (i==0 || i==dx-1 || j==0 || j==dy-1)
           *pdest=*psrc;
         else {
-          *pdest=(uchar)std::max(cmin,std::min((int)(psrc[0]*(1.0+4.0*sharpfactor)-
+          *pdest=(uchar)max(cmin,min((int)(psrc[0]*(1.0+4.0*sharpfactor)-
           (psrc[-dx]+psrc[-1]+psrc[1]+psrc[dx])*sharpfactor),cmax));
         };
       };
@@ -989,7 +988,7 @@ void Startbitmapdecoding(t_procdata *pdata,uchar *data,int sizex,int sizey) {
   pdata->sizey=sizey;
   pdata->blockborder=0.0;              // Autoselect
   pdata->step=1;
-  if (::pb_bestquality)
+  if (pb_bestquality)
     pdata->mode|=M_BEST;
   //Updatebuttons();
 };

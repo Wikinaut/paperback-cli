@@ -1,3 +1,9 @@
 [submodule "lib/PortLibC"]
 	path = lib/PortLibC
 	url = https://git.teknik.io/suhrke/PortLibC.git
+[submodule "lib/minizip"]
+	path = lib/minizip
+	url = https://github.com/nmoinvaz/minizip.git
+[submodule "bzip2"]
+	path = lib/bzip2
+	url = https://github.com/enthought/bzip2-1.0.6.git

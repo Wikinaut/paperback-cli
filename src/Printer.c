@@ -35,7 +35,6 @@
 #include <sys/stat.h>
 #endif
 #include <stdlib.h>
-#include <algorithm>
 #include "bzlib.h"
 #include "aes.h"
 #include "Bitmap.h"
@@ -392,41 +391,41 @@ static void Finishcompression(t_printdata *print) {
 // Encrypts data. I ask to enter password individually for each file. AES-256
 // encryption is very fast, so we don't need to split it into several steps.
 static void Encryptdata(t_printdata *print) {
-  int n;
-  uint32_t l;
-  aes_context ctx;
-  // Calculate 16-bit CRC of possibly compressed but unencrypted data. I use
-  // it to verify data after decryption: the safe way to assure that password
-  // is entered correctly.
-  print->bufcrc=Crc16(print->buf,print->alignedsize);
-  // Skip rest of this step if encryption is not required.
-  if (print->encryption==0) {
-    print->step++;
-    return; };
-  // Ask for password. If user cancels, skip file.
-  Message("Encrypting data...",0);
-  // If we want encryption, securely get it from user here
-  if (Getpassword() != 0) {
-    Reporterror("Cancelling encryption and continuing");
-    print->encryption=0;
-    print->step++;
-    return; 
-  }
-
-  // Encryption routine expects that password is exactly PASSLEN bytes long.
-  // Fill rest of the password with zeros.
-  n=strlen(pb_password);
-  while (n<PASSLEN) pb_password[n++]=0;
-  // Initialize encryption.
-  memset(&ctx,0,sizeof(ctx));
-  aes_set_key(&ctx,(uchar *)pb_password,256);
-  // Encrypt data. AES works with 16-byte data chunks.
-  for (l=0; l<print->alignedsize; l+=16)
-    aes_encrypt(&ctx,print->buf+l,print->buf+l);
-  // Clear password and encryption control block. We no longer need them.
-  memset(pb_password,0,sizeof(pb_password));
-  memset(&ctx,0,sizeof(ctx));
-  // Step finished.
+//  int n;
+//  uint32_t l;
+//  aes_context ctx;
+//  // Calculate 16-bit CRC of possibly compressed but unencrypted data. I use
+//  // it to verify data after decryption: the safe way to assure that password
+//  // is entered correctly.
+//  print->bufcrc=Crc16(print->buf,print->alignedsize);
+//  // Skip rest of this step if encryption is not required.
+//  if (print->encryption==0) {
+//    print->step++;
+//    return; };
+//  // Ask for password. If user cancels, skip file.
+//  Message("Encrypting data...",0);
+//  // If we want encryption, securely get it from user here
+//  if (Getpassword() != 0) {
+//    Reporterror("Cancelling encryption and continuing");
+//    print->encryption=0;
+//    print->step++;
+//    return; 
+//  }
+//
+//  // Encryption routine expects that password is exactly PASSLEN bytes long.
+//  // Fill rest of the password with zeros.
+//  n=strlen(pb_password);
+//  while (n<PASSLEN) pb_password[n++]=0;
+//  // Initialize encryption.
+//  memset(&ctx,0,sizeof(ctx));
+//  aes_set_key(&ctx,(uchar *)pb_password,256);
+//  // Encrypt data. AES works with 16-byte data chunks.
+//  for (l=0; l<print->alignedsize; l+=16)
+//    aes_encrypt(&ctx,print->buf+l,print->buf+l);
+//  // Clear password and encryption control block. We no longer need them.
+//  memset(pb_password,0,sizeof(pb_password));
+//  memset(&ctx,0,sizeof(ctx));
+//  // Step finished.
   print->step++;
 };
 
@@ -460,7 +459,9 @@ static void Initializeprinting(t_printdata *print) {
     fnmerge(fil,NULL,NULL,nam,NULL);
   // Note that name in superdata may be not null-terminated.
   printf("Encoding %s to bitmap\n", fil);
-  strncpy(print->superdata.name,fil,sizeof(print->superdata.name));
+  size_t dataSize = sizeof(print->superdata.name);
+  strncpy(print->superdata.name,fil,dataSize);
+  print->superdata.name[dataSize] = '\0'; // ensure that later string operations don't overflow into binary data
   // If printing to paper, ask user to select printer and, if necessary, adjust
   // parameters. I do not enforce high quality or high resolution - the user is
   // the king (well, a sort of).
@@ -611,10 +612,10 @@ static void Initializeprinting(t_printdata *print) {
   // Calculate data point raster (dx,dy) and size of the point (px,py) in the
   // pixels of printer's resolution. Note that pixels, at least in theory, may
   // be non-rectangular.
-  dx=std::max(print->ppix/pb_dpi,2);
-  px=std::max((dx*pb_dotpercent)/100,1);
-  dy=std::max(print->ppiy/pb_dpi,2);
-  py=std::max((dy*pb_dotpercent)/100,1);
+  dx=max(print->ppix/pb_dpi,2);
+  px=max((dx*pb_dotpercent)/100,1);
+  dy=max(print->ppiy/pb_dpi,2);
+  py=max((dy*pb_dotpercent)/100,1);
   // Calculate width of the border around the data grid.
   if (print->printborder)
     print->border=dx*16;
@@ -764,12 +765,12 @@ static void Printnextpage(t_printdata *print) {
     bits=print->drawbits;
   // Check if we can reduce the vertical size of the table on the last page.
   // To assure reliable orientation, I request at least 3 rows.
-  l=std::min(size-offset,pagesize);
+  l=min(size-offset,pagesize);
   n=(l+NDATA-1)/NDATA;                 // Number of pure data blocks on page
   nstring=                             // Number of groups (length of string)
     (n+redundancy-1)/redundancy;
   n=(nstring+1)*(redundancy+1)+1;      // Total number of blocks to print
-  n=std::max((n+nx-1)/nx,3);                // Number of rows (at least 3)
+  n=max((n+nx-1)/nx,3);                // Number of rows (at least 3)
   if (ny>n) ny=n;
   height=ny*(NDOT+3)*dy+py+2*border;
   // Initialize bitmap to all white.
@@ -1007,14 +1008,14 @@ void Nextdataprintingstep(t_printdata *print) {
 // Sends specified file to printer (bmp=NULL) or to bitmap file.
 void Printfile(const char *path, const char *bmp) {
   // Stop printing of previous file, if any.
-  Stopprinting(&::pb_printdata);
+  Stopprinting(&pb_printdata);
   // Prepare descriptor.
-  memset(&::pb_printdata,0,sizeof(pb_printdata));
-  strncpy(::pb_printdata.infile,path,MAXPATH-1); 
+  memset(&pb_printdata,0,sizeof(pb_printdata));
+  strncpy(pb_printdata.infile,path,MAXPATH-1); 
   if (bmp!=NULL)
-    strncpy(::pb_printdata.outbmp,bmp,MAXPATH-1);
+    strncpy(pb_printdata.outbmp,bmp,MAXPATH-1);
   // Start printing.
-  ::pb_printdata.step=1;
+  pb_printdata.step=1;
   //Updatebuttons(); 
 };
 

@@ -104,7 +104,7 @@ int ProcessDIB(void *hdata,int offset) {
     };
   };
   // Decode bitmap. This is what we are for here.
-  Startbitmapdecoding(&::pb_procdata,data,sizex,sizey);
+  Startbitmapdecoding(&pb_procdata,data,sizex,sizey);
   // Free original bitmap and report success.
   //GlobalUnlock(hdata);
   return 0;
@@ -125,14 +125,14 @@ int Decodebitmap(char *path) {
   //if (path==NULL || path[0]=='\0') {
   //  if (Selectinbmp()!=0) return -1; }
   //else {
-  strncpy(::pb_inbmp,path,sizeof(::pb_inbmp));
-  ::pb_inbmp[sizeof(::pb_inbmp)-1]='\0';
-  fnsplit(::pb_inbmp,NULL,NULL,fil,ext);
+  strncpy(pb_inbmp,path,sizeof(pb_inbmp));
+  pb_inbmp[sizeof(pb_inbmp)-1]='\0';
+  fnsplit(pb_inbmp,NULL,NULL,fil,ext);
   sprintf(s,"Reading %s%s...",fil,ext);
   Message(s,0);
   //Updatebuttons();
   // Open file and verify that this is the valid bitmap of known type.
-  f=fopen(::pb_inbmp,"rb");
+  f=fopen(pb_inbmp,"rb");
   if (f==NULL) {                       // Unable to open file
     sprintf(s,"Unable to open %s%s",fil,ext);
     Reporterror(s);

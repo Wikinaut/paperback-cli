@@ -50,7 +50,6 @@
 
 #include "paperbak.h"
 #include "Resource.h"
-using namespace std;
 
 #define VERSIONHI 1
 #define VERSIONLO 2
@@ -98,18 +97,18 @@ void nextBitmap (char *path);
 
 int main(int argc, char ** argv) {
     // set values needed for cli version
-    ::pb_autosave = 1;
+    pb_autosave = 1;
     
     // set default values for vars affected by arg parsing
-    ::pb_infile[0]   = '\0';
-    ::pb_outfile[0]  = '\0';
-    ::pb_outbmp[0]   = '\0';
-    ::pb_npages      = 0;
-    ::pb_dpi         = 200;
-    ::pb_dotpercent  = 70;
-    ::pb_redundancy  = 5;
-    ::pb_printheader = 0;
-    ::pb_printborder = 0;
+    pb_infile[0]   = '\0';
+    pb_outfile[0]  = '\0';
+    pb_outbmp[0]   = '\0';
+    pb_npages      = 0;
+    pb_dpi         = 200;
+    pb_dotpercent  = 70;
+    pb_redundancy  = 5;
+    pb_printheader = 0;
+    pb_printborder = 0;
 
     bool isEncode = arguments(argc, argv);
     if (isEncode) {
@@ -119,24 +118,24 @@ int main(int argc, char ** argv) {
                 "Redundancy: 1:%d\n"
                 "Print header/footer: %d\n"
                 "Print border: %d\n",
-                ::pb_infile, ::pb_outbmp,
-                ::pb_dpi, ::pb_dotpercent, ::pb_redundancy,
-                ::pb_printheader, ::pb_printborder);
+                pb_infile, pb_outbmp,
+                pb_dpi, pb_dotpercent, pb_redundancy,
+                pb_printheader, pb_printborder);
 
-        Printfile (::pb_infile, ::pb_outbmp);
-        while (::pb_printdata.step != 0) {
-            Nextdataprintingstep (&::pb_printdata);
+        Printfile (pb_infile, pb_outbmp);
+        while (pb_printdata.step != 0) {
+            Nextdataprintingstep (&pb_printdata);
         }
     }
     else {
         char drv[MAXDRIVE],dir[MAXDIR],nam[MAXFILE],ext[MAXEXT],path[MAXPATH+32];
-        fnsplit (::pb_infile, drv, dir, nam, ext);
+        fnsplit (pb_infile, drv, dir, nam, ext);
         int i;
-        if (::pb_npages > 0) {
-          for (int i = 0; i < ::pb_npages; i++) {
+        if (pb_npages > 0) {
+          for (int i = 0; i < pb_npages; i++) {
             sprintf(path,"%s%s%s_%04i%s",drv,dir,nam,i+1,ext);
             Decodebitmap (path);
-            while (::pb_procdata.step != 0) {
+            while (pb_procdata.step != 0) {
               nextBitmap (path);
             }
           }
@@ -153,10 +152,10 @@ int main(int argc, char ** argv) {
 
 
 inline void nextBitmap (char *path) {
-  printf ("Decoding %s into %s\n", path, ::pb_outfile);
+  printf ("Decoding %s into %s\n", path, pb_outfile);
   Decodebitmap (path);
-  while (::pb_procdata.step != 0) {
-    Nextdataprocessingstep (&::pb_procdata);
+  while (pb_procdata.step != 0) {
+    Nextdataprocessingstep (&pb_procdata);
   }
 }
 
@@ -194,15 +193,16 @@ inline void dhelp (const char *exe) {
 inline void dversion() {
     printf("\nPaperBack v%d.%d\n"
             "Copyright © 2007 Oleh Yuschuk\n\n"
+            "Parts copyright © 2013 Michael Mohr\n\n"
             "----- THIS SOFTWARE IS FREE -----\n"
             "Released under GNU Public License (GPL 3+)\n"
             "Full sources available\n\n"
             "Reed-Solomon ECC:\n"
             "Copyright © 2002 Phil Karn (GPL)\n\n"
             "Bzip2 data compression:\n"
-            "Copyright © 1996-2005 Julian R. Seward (see sources)\n\n"
-            "FIPS-197 compliant AES encryption:\n"
-            "Copyright © 2001-2004 Christophe Devine (GPL 2+)\n\n",
+            "Copyright © 1996-2010 Julian R. Seward (see sources)\n\n"
+            "AES and SHA code:\n"
+            "Copyright © 1998-2010, Brian Gladman (3-clause BSD)",
             VERSIONHI, VERSIONLO);
 }
 
@@ -243,7 +243,7 @@ int arguments (int ac, char **av) {
                     fprintf(stderr, "error: arg is NULL ! \n");
                     is_ok = false;
                 } else {
-                    strcpy (::pb_infile, optarg);
+                    strcpy (pb_infile, optarg);
                 }
                 break;
             case 'o':
@@ -251,8 +251,8 @@ int arguments (int ac, char **av) {
                     fprintf(stderr, "error: outfile arg is null \n");
                     is_ok = false;
                 } else {
-                    strcpy (::pb_outfile, optarg);
-                    strcpy (::pb_outbmp, optarg);
+                    strcpy (pb_outfile, optarg);
+                    strcpy (pb_outbmp, optarg);
                 }
                 break;
             case 'p':
@@ -260,28 +260,28 @@ int arguments (int ac, char **av) {
                     fprintf(stderr, "error: pages arg is null \n");
                     is_ok = false;
                 } else {
-                   ::pb_npages     = atoi(optarg); 
+                   pb_npages     = atoi(optarg); 
                 }
                 break;
             case 'd':
                 if (optarg != NULL)
-                  ::pb_dpi         = atoi(optarg);
+                  pb_dpi         = atoi(optarg);
                 break;
             case 's':
                 if (optarg != NULL)
-                  ::pb_dotpercent  = atoi(optarg);
+                  pb_dotpercent  = atoi(optarg);
                 break;
             case 'r':
                 if (optarg != NULL)
-                  ::pb_redundancy  = atoi(optarg);
+                  pb_redundancy  = atoi(optarg);
                 break;
             case 'n':
                 if (optarg != NULL)
-                  ::pb_printheader = !(atoi(optarg));
+                  pb_printheader = !(atoi(optarg));
                 break;
             case 'b':
                 if (optarg != NULL)
-                  ::pb_printborder = atoi(optarg);
+                  pb_printborder = atoi(optarg);
                 break;
             case 'v':
                 if (optarg != NULL)
@@ -303,35 +303,35 @@ int arguments (int ac, char **av) {
         dversion();
         exit(EXIT_SUCCESS);
     }
-    if (strlen (::pb_infile) == 0) {
+    if (strlen (pb_infile) == 0) {
         fprintf (stderr, "error: no input file given\n");
         is_ok = false;
     }
-    if (strlen (::pb_outfile) == 0) {
+    if (strlen (pb_outfile) == 0) {
         fprintf (stderr, "error: no output file given\n");
         is_ok = false;
     }
-    if (::pb_npages < 0 || ::pb_npages > 9999) {
+    if (pb_npages < 0 || pb_npages > 9999) {
         fprintf (stderr, "error: invalid number of pages given\n");
         is_ok = false;
     }
-    if (::pb_dotpercent < 50 || ::pb_dotpercent > 100) {
+    if (pb_dotpercent < 50 || pb_dotpercent > 100) {
         fprintf (stderr, "error: invalid dotsize given\n");
         is_ok = false;
     }
-    if (::pb_dpi < 40 || ::pb_dpi > 600) {
+    if (pb_dpi < 40 || pb_dpi > 600) {
         fprintf (stderr, "error: invalid DPI given\n");
         is_ok = false;
     }
-    if (::pb_redundancy < 2 || ::pb_redundancy > 10) {
+    if (pb_redundancy < 2 || pb_redundancy > 10) {
         fprintf (stderr, "error: invalid redundancy given\n");
         is_ok = false;
     }
-    if (::pb_printheader < 0 || ::pb_printheader > 1) {
+    if (pb_printheader < 0 || pb_printheader > 1) {
         fprintf (stderr, "error: invalid header setting given\n");
         is_ok = false;
     }
-    if (::pb_printborder < 0 || ::pb_printborder > 1) {
+    if (pb_printborder < 0 || pb_printborder > 1) {
         fprintf (stderr, "error: invalid border setting given\n");
         is_ok = false;
     }

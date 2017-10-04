@@ -34,11 +34,11 @@
 #include <sys/stat.h>
 #endif
 #include <stdlib.h>
-#include <algorithm>
 #include <stdint.h>
 #include <utime.h>
 #include "bzlib.h"
 #include "aes.h"
+#include "pwd2key.h"
 
 #include "paperbak.h"
 #include "Resource.h"
@@ -50,12 +50,12 @@
 void Closefproc(int slot) {
   if (slot<0 || slot>=NFILE)
     return;                            // Error in input data
-  if (::pb_fproc[slot].datavalid!=NULL)
-    free(::pb_fproc[slot].datavalid);
-  if (::pb_fproc[slot].data!=NULL)
-    free(::pb_fproc[slot].data);
-  memset(::pb_fproc+slot,0,sizeof(t_fproc));
-  //Updatefileinfo(slot,::pb_fproc+slot); //GUI
+  if (pb_fproc[slot].datavalid!=NULL)
+    free(pb_fproc[slot].datavalid);
+  if (pb_fproc[slot].data!=NULL)
+    free(pb_fproc[slot].data);
+  memset(pb_fproc+slot,0,sizeof(t_fproc));
+  //Updatefileinfo(slot,pb_fproc+slot); //GUI
 };
 
 
@@ -68,7 +68,7 @@ int Startnextpage(t_superblock *superblock) {
   // Check whether file is already in the list of processed files. If not,
   // initialize new descriptor.
   freeslot=-1;
-  for (slot=0,pf=::pb_fproc; slot<NFILE; slot++,pf++) {
+  for (slot=0,pf=pb_fproc; slot<NFILE; slot++,pf++) {
     if (pf->busy==0) {                 // Empty descriptor
       if (freeslot<0) freeslot=slot;
       continue; };
@@ -96,7 +96,7 @@ int Startnextpage(t_superblock *superblock) {
       Reporterror("Maximal number of processed files exceeded");
       return -1; };
     slot=freeslot;
-    pf=::pb_fproc+slot;
+    pf=pb_fproc+slot;
     memset(pf,0,sizeof(t_fproc));
     // Allocate block and recovery tables.
     pf->nblock=(superblock->datasize+NDATA-1)/NDATA;
@@ -131,7 +131,7 @@ int Startnextpage(t_superblock *superblock) {
     pf->recoveredblocks=0;
     pf->busy=1; };
   // Invalidate page limits and report success.
-  pf=::pb_fproc+slot;
+  pf=pb_fproc+slot;
   pf->page=superblock->page;
   pf->ngroup=superblock->ngroup;
   pf->minpageaddr=0xFFFFFFFF;
@@ -147,7 +147,7 @@ int Addblock(t_block *block,int slot) {
   t_fproc *pf;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
-  pf=::pb_fproc+slot;
+  pf=pb_fproc+slot;
   if (pf->busy==0)
     return -1;                         // Index points to unused descriptor
   // Add block to descriptor.
@@ -162,8 +162,8 @@ int Addblock(t_block *block,int slot) {
       memcpy(pf->data+block->addr,block->data,NDATA);
       pf->datavalid[i]=1;              // Valid data
       pf->ndata++; };
-    pf->minpageaddr=std::min(pf->minpageaddr,block->addr);
-    pf->maxpageaddr=std::max(pf->maxpageaddr,block->addr+NDATA); }
+    pf->minpageaddr=min(pf->minpageaddr,block->addr);
+    pf->maxpageaddr=max(pf->maxpageaddr,block->addr+NDATA); }
   else {
     // Data recovery block. I write it to all free locations within the group.
     if (block->recsize!=(uint32_t)(pf->ngroup*NDATA))
@@ -178,8 +178,8 @@ int Addblock(t_block *block,int slot) {
       if (pf->datavalid[j]!=0) continue;
       memcpy(pf->data+j*NDATA,block->data,NDATA);
       pf->datavalid[j]=2; };           // Valid recovery data
-    pf->minpageaddr=std::min(pf->minpageaddr,block->addr);
-    pf->maxpageaddr=std::max(pf->maxpageaddr,block->addr+block->recsize);
+    pf->minpageaddr=min(pf->minpageaddr,block->addr);
+    pf->maxpageaddr=max(pf->maxpageaddr,block->addr+block->recsize);
   };
   // Report success.
   return 0;
@@ -194,7 +194,7 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
   t_fproc *pf;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
-  pf=::pb_fproc+slot;
+  pf=pb_fproc+slot;
   if (pf->busy==0)
     return -1;                         // Index points to unused descriptor
   // Update statistics. Note that it grows also when the same page is scanned
@@ -273,7 +273,7 @@ int Finishpage(int slot,int ngood,int nbad,uint32_t nrestored) {
     pf->rempages[nrempages]=0;
   //Updatefileinfo(slot,pf);
   if (pf->ndata==pf->nblock) {
-    if (::pb_autosave==0) {
+    if (pb_autosave==0) {
       Message("File restored.",0);
     }
     else {
@@ -291,14 +291,14 @@ int Saverestoredfile(int slot,int force) {
   int n,success;
   ushort filecrc;
   uint32_t l,length;
-  uchar *bufout,*data,*tempdata;
+  uchar *bufout,*data,*tempdata,*salt,key[AESKEYLEN],iv[16];
   t_fproc *pf;
-  aes_context ctx;
+  aes_decrypt_ctx ctx[1];
   //HANDLE hfile;
   FILE *hfile;
   if (slot<0 || slot>=NFILE)
     return -1;                         // Invalid index of file descriptor
-  pf=::pb_fproc+slot;
+  pf=pb_fproc+slot;
   if (pf->busy==0 || pf->nblock==0)
     return -1;                         // Index points to unused descriptor
   if (pf->ndata!=pf->nblock && force==0)
@@ -322,12 +322,26 @@ int Saverestoredfile(int slot,int force) {
       Reporterror("Low memory, can't decrypt data");
       return -1; 
     };
-    n=strlen(::pb_password);
-    while (n<PASSLEN) ::pb_password[n++]=0;
-    memset(&ctx,0,sizeof(ctx));
-    aes_set_key(&ctx,(uchar *)::pb_password,256);
-    for (l=0; l<pf->datasize; l+=16)
-      aes_decrypt(&ctx,pf->data+l,tempdata+l);
+    n=strlen(pb_password);
+    salt=(uchar *)(pf->name)+32; // hack: put the salt & iv at the end of the name field
+    derive_key((const uchar *)pb_password, n, salt, 16, 524288, key, AESKEYLEN);
+    memset(pb_password,0,sizeof(pb_password));
+    memset(ctx,0,sizeof(aes_decrypt_ctx));
+    if(aes_decrypt_key((const uchar *)key,AESKEYLEN,ctx) == EXIT_FAILURE) {
+      memset(key,0,AESKEYLEN);
+      Reporterror("Failed to set decryption key");
+      return -1; 
+    };
+    memset(key,0,AESKEYLEN);
+    memcpy(iv, salt+16, 16); // the second 16-byte block in 'salt' is the IV
+    if(aes_cbc_decrypt(pf->data,tempdata,pf->datasize,iv,ctx) == EXIT_FAILURE) {
+      Reporterror("Failed to decrypt data");
+      memset(ctx,0,sizeof(aes_decrypt_ctx));
+      return -1; 
+    };
+    memset(ctx,0,sizeof(aes_decrypt_ctx));
+
+
     filecrc=Crc16(tempdata,pf->datasize);
     if (filecrc!=pf->filecrc) {
       Reporterror("Invalid password, please try again");
@@ -357,7 +371,7 @@ int Saverestoredfile(int slot,int force) {
     // Unpack data.
     length=pf->origsize;
     success=BZ2_bzBuffToBuffDecompress((char *)bufout,(uint *)&length,
-      (char*)pf->data,pf->datasize,0,0);
+        (char*)pf->data,pf->datasize,0,0);
     if (success!=BZ_OK) {
       free (bufout);
       Reporterror("Unable to unpack data");
@@ -370,9 +384,9 @@ int Saverestoredfile(int slot,int force) {
   //  return -1; 
   //};
   // Open file and save data.
-  //hfile=CreateFile(::pb_outfile,GENERIC_WRITE,0,NULL,
+  //hfile=CreateFile(pb_outfile,GENERIC_WRITE,0,NULL,
   //  CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-  hfile = fopen (::pb_outfile, "wb");
+  hfile = fopen (pb_outfile, "wb");
   if (hfile==NULL) {
     if (bufout!=NULL) 
       free (bufout);
@@ -385,8 +399,8 @@ int Saverestoredfile(int slot,int force) {
   // Restore old modification date and time.
 #ifdef _WIN32
   // open HANDLE and set file time
-  handleFile=CreateFile(::pb_outfile,GENERIC_WRITE,0,NULL,
-    CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  handleFile=CreateFile(pb_outfile,GENERIC_WRITE,0,NULL,
+      CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
   if (handleFile==INVALID_HANDLE_VALUE) {
     if (bufout!=NULL) 
       free(bufout);
@@ -396,7 +410,7 @@ int Saverestoredfile(int slot,int force) {
   SetFileTime(handleFile,&pf->modified,&pf->modified,&pf->modified);
   // Close file and restore old basic attributes.
   CloseHandle(hfile);
-  SetFileAttributes(::pb_outfile,pf->attributes);
+  SetFileAttributes(pb_outfile,pf->attributes);
   if (bufout!=NULL) 
     free(bufout);
   if (l!=length) {
@@ -407,14 +421,14 @@ int Saverestoredfile(int slot,int force) {
   // Set file time
   struct stat bmpStat;
   struct utimbuf newTime;
-  stat(::pb_outfile, &bmpStat);
+  stat(pb_outfile, &bmpStat);
   newTime.actime = bmpStat.st_atime;
   newTime.modtime = convertToPosixTime(pf->modified);
-  utime(::pb_outfile, &newTime);
+  utime(pb_outfile, &newTime);
 
   // Restore mode
   mode_t mode = convertToPosixAttributes(pf->attributes);
-  chmod (::pb_outfile, convertToPosixAttributes(pf->attributes));
+  chmod (pb_outfile, convertToPosixAttributes(pf->attributes));
 
 #endif
   // Close file descriptor and report success.

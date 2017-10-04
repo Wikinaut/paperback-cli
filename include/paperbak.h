@@ -47,6 +47,9 @@
 #define TEXTLEN        256             // Maximal length of strings
 #define PASSLEN        33              // Maximal length of password, incl. 0
 
+#define USE_SHA1       1
+#define AESKEYLEN      24              // AES key length in bytes (16, 24, or 32)
+
 typedef unsigned char  uchar;
 typedef uint16_t       ushort;
 typedef unsigned int   uint;
@@ -72,7 +75,7 @@ typedef struct __attribute__ ((packed)) t_data { // Block on paper
   uchar          ecc[32];              // Reed-Solomon's error correction code
 } t_data;
 #ifdef __linux__
-static_assert(sizeof(t_data)==128);
+_Static_assert(sizeof(t_data)==128, "t_data not 128 bytes long");
 #endif
 
 #define PBM_COMPRESSED 0x01            // Paper backup is compressed
@@ -96,7 +99,8 @@ typedef struct __attribute__ ((packed)) t_superdata { // Id block on paper
   uchar          ecc[ECC_SIZE];        // Reed-Solomon's error correction code
 } t_superdata;
 #ifdef __linux__
-static_assert(sizeof(t_superdata)==sizeof(t_data));
+_Static_assert(sizeof(t_superdata)==sizeof(t_data), 
+                      "t_superdata is not the same size as t_data");
 #endif
 
 typedef struct t_block {               // Block in memory
@@ -190,8 +194,8 @@ typedef struct t_printdata {           // Print control structure
 } t_printdata;
 
 
-extern int       pb_resx, pb_resy;            // Printer resolution, dpi (may be 0!)
-extern t_printdata pb_printdata;          // Print control structure
+int       pb_resx, pb_resy;            // Printer resolution, dpi (may be 0!)
+t_printdata pb_printdata;          // Print control structure
 
 void   Initializeprintsettings(void);
 void   Closeprintsettings(void);
@@ -247,8 +251,8 @@ typedef struct t_procdata {            // Descriptor of processed data
   int            nrestored;            // Page statistics: restored bytes
 } t_procdata;
 
-extern int       pb_orientation;          // Orientation of bitmap (-1: unknown)
-extern t_procdata pb_procdata;            // Descriptor of processed data
+int       pb_orientation;          // Orientation of bitmap (-1: unknown)
+t_procdata pb_procdata;            // Descriptor of processed data
 
 void   Nextdataprocessingstep(t_procdata *pdata);
 void   Freeprocdata(t_procdata *pdata);
@@ -292,7 +296,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            rempages[8];          // 1-based list of remaining pages
 } t_fproc;
 
-extern t_fproc   pb_fproc[NFILE];             // Processed file
+t_fproc   pb_fproc[NFILE];             // Processed file
 
 void   Closefproc(int slot);
 int    Startnextpage(t_superblock *superblock);
@@ -310,119 +314,48 @@ int    Decodebitmap(char *path);
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// USER INTERFACE ////////////////////////////////
 
-extern char      pb_infile[MAXPATH];      // Last selected file to read
-extern char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
-extern char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
-extern char      pb_outfile[MAXPATH];     // Last selected data file to save
+char      pb_infile[MAXPATH];      // Last selected file to read
+char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
+char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
+char      pb_outfile[MAXPATH];     // Last selected data file to save
  
-extern char      pb_password[PASSLEN];    // Encryption password
+char      pb_password[PASSLEN];    // Encryption password
  
-extern int       pb_dpi;                  // Dot raster, dots per inch
-extern int       pb_dotpercent;           // Dot size, percent of dpi
-extern int       pb_compression;          // 0: none, 1: fast, 2: maximal
-extern int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
-extern int       pb_printheader;          // Print header and footer
-extern int       pb_printborder;          // Border around bitmap
-extern int       pb_autosave;             // Autosave completed files
-extern int       pb_bestquality;          // Determine best quality
-extern int       pb_encryption;           // Encrypt data before printing
-extern int       pb_opentext;             // Enter passwords in open text
+int       pb_dpi;                  // Dot raster, dots per inch
+int       pb_dotpercent;           // Dot size, percent of dpi
+int       pb_compression;          // 0: none, 1: fast, 2: maximal
+int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+int       pb_printheader;          // Print header and footer
+int       pb_printborder;          // Border around bitmap
+int       pb_autosave;             // Autosave completed files
+int       pb_bestquality;          // Determine best quality
+int       pb_encryption;           // Encrypt data before printing
+int       pb_opentext;             // Enter passwords in open text
   
-extern int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
-extern int       pb_marginleft;           // Left printer page margin
-extern int       pb_marginright;          // Right printer page margin
-extern int       pb_margintop;            // Top printer page margin
-extern int       pb_marginbottom;         // Bottom printer page margin
+int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
+int       pb_marginleft;           // Left printer page margin
+int       pb_marginright;          // Right printer page margin
+int       pb_margintop;            // Top printer page margin
+int       pb_marginbottom;         // Bottom printer page margin
   
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// SERVICE FUNCTIONS ///////////////////////////////
 
 
-inline void Reporterror(const char *input) 
-{
-  printf("%s\n", input);
-}
+void Reporterror(const char *input);
 
-
-
-inline void Message(const char *input, int progress) 
-{
-  //printf("%s @ %d\%\n", input, progress);
-  printf("%s\n", input);
-}
-
-
+void Message(const char *input, int progress);
 
 // Formerly standard case insentitive cstring compare
-inline int strnicmp (const char *str1, const char *str2, size_t len)
-{
-  char s1[len], s2[len];
-  strcpy (s1, str1);
-  strcpy (s2, str2);
-  for (int i = 0; i < len; i++) {
-      s1[i] = tolower(s1[i]);
-      s2[i] = tolower(s1[i]);
-      if (s1[i] < s2[i])      //s1 less than s2, return negative
-        return -1;
-      else if (s1[i] > s2[i]) //s1 more than s2, return positive
-        return 1;
-  }
-
-  // if all characters are the same, return 0
-  return 0;
-}
-
-
+int strnicmp (const char *str1, const char *str2, size_t len);
 
 // returns 0 on success, -1 on failure
-inline int Getpassword()
-{
-  // LINUX-ONLY, deprecated, and only gets 8 character long password
-  //char * pw = getpass("Enter encryption password: ");
-  //int pwLength = strlen(pw);
+int Getpassword();
 
-  // Crossplatform
-  printf ("Enter encryption password: ");
-  char pw[PASSLEN];
-  int pwLength = 0;
-  char ch = '\0';
-  printf ("\033[8m"); //set terminal to hide typing
-  while (pwLength < PASSLEN) {
-    ch = getchar();
-    if (ch == '\r' || ch == '\n' || ch == EOF)
-      break;
+int max (int a, int b);
 
-    if (pwLength < (PASSLEN - 1)) {
-      pw[pwLength] = ch;
-      pw[pwLength + 1] = '\0';
-    }
-
-    ++pwLength;
-  }
-  printf ("\033[28m"); //set terminal to display typing
- 
-  int status = -1;
-  printf ("strlen(pw): %i\n", strlen(pw));
-  fwrite (pw, PASSLEN, 1, stdout);
-  printf ("\n");
-  if (pwLength > 0 && pwLength <= (PASSLEN - 1) ) {
-    // put password into global password variable
-    memcpy (::pb_password, pw, PASSLEN);
-    status = 0; //success
-  }
-  else {
-    Reporterror("Password must be 32 characters or less");
-    status = -1; //failure
-  }
-  
-  printf ("strlen(::pb_password): %i\n", strlen(::pb_password));
-  fwrite (::pb_password, PASSLEN, 1, stdout);
-  printf ("\n");
-  // overwrite pw for security
-  memset (pw, 0, PASSLEN);
-  return status;
-}
+int min (int a, int b);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -431,23 +364,9 @@ inline int Getpassword()
 #if defined(_WIN32) || defined(__CYGWIN__)
 // Converts file date and time into the text according to system defaults and
 // places into the string s of length n. Returns number of characters in s.
-inline int Filetimetotext(FILETIME *fttime,char *s,int n) {
-  int l;
-  SYSTEMTIME sttime;
-  FileTimeToSystemTime(fttime,&sttime);
-  l=GetDateFormat(LOCALE_USER_DEFAULT,DATE_SHORTDATE,&sttime,NULL,s,n);
-  s[l-1]=' ';                          // Yuck, that's Windows
-  l+=GetTimeFormat(LOCALE_USER_DEFAULT,TIME_NOSECONDS,&sttime,NULL,s+l,n-l);
-  return l;
-};
+int Filetimetotext(FILETIME *fttime,char *s,int n);
 
-inline void print_filetime(FILETIME ftime) {
-    char str[30];
-    int ok = Filetimetotext(&ftime, str, 30);
-    if (ok) {
-      printf("%s\n", str);
-    }
-}
+void print_filetime(FILETIME ftime);
 
 #endif
 

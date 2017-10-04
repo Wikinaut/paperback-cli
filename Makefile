@@ -1,14 +1,16 @@
 EX=paperback-cli
 SDIR=src
-BZDIR=lib/BZLIB
-AESDIR=lib/AES
-CC=g++
-CFLAGS=-Wall -std=c++11 -I"include" -I"lib/PortLibC/include" -I"lib/cxxopts/include" -I"lib/AES" -I"lib/BZLIB"
+PDIR=lib/PortLibC
+BZDIR=lib/bzip2
+AESDIR=lib/minizip/aes
+CC=gcc
+LDFLAGS=#-lcrypto -lssl
+CFLAGS=-Iinclude -Ilib/PortLibC/include -Ilib/cxxopts/include -I$(PDIR)/include -I$(BZDIR) -I$(AESDIR) #-std=c++11 -DUSE_SHA1 
 
 all: main
 
-main: $(SDIR)/main.cpp $(SDIR)/Printer.cpp $(SDIR)/Scanner.cpp $(SDIR)/Fileproc.cpp $(SDIR)/Decoder.cpp $(SDIR)/Fileproc.cpp $(SDIR)/Crc16.cpp $(SDIR)/Ecc.cpp $(BZDIR)/bz_lib.cpp $(BZDIR)/bz_blocksort.cpp $(BZDIR)/bz_compress.cpp $(BZDIR)/bz_crctable.cpp $(BZDIR)/bz_decompress.cpp $(BZDIR)/bz_huffman.cpp $(BZDIR)/bz_randtable.cpp $(AESDIR)/ae_aes.cpp
-	$(CC) $^ $(CFLAGS) -o $(EX)
+main: $(SDIR)/main.c $(SDIR)/paperbak.c $(SDIR)/Printer.c $(SDIR)/Scanner.c $(SDIR)/Fileproc.c $(SDIR)/Decoder.c $(SDIR)/Fileproc.c $(SDIR)/Crc16.c $(SDIR)/Ecc.c $(PDIR)/src/FileAttributes.c $(PDIR)/src/Borland.c $(BZDIR)/bzlib.c $(BZDIR)/blocksort.c $(BZDIR)/compress.c $(BZDIR)/crctable.c $(BZDIR)/decompress.c $(BZDIR)/huffman.c $(BZDIR)/randtable.c $(AESDIR)/pwd2key.c $(AESDIR)/hmac.c $(AESDIR)/sha1.c $(AESDIR)/aescrypt.c $(AESDIR)/aeskey.c $(AESDIR)/aes_ni.c $(AESDIR)/aestab.c $(AESDIR)/fileenc.c $(AESDIR)/prng.c lib/aes_modes.c
+	$(CC) $^ $(LDFLAGS) $(CFLAGS) -o $(EX)
 
 
 clean:
