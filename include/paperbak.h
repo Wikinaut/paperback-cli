@@ -20,9 +20,16 @@
 #include <unistd.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
+#endif
+
+#if defined max
 #undef max
+#endif
+
+#if defined min
 #undef min
 #endif
+
 #include "bzlib.h"
 #include "Bitmap.h"
 #include "FileAttributes.h"
