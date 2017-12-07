@@ -48,7 +48,7 @@
 
 #define TEXTLEN        256             // Maximal length of strings
 #define PASSLEN        33              // Maximal length of password, incl. 0
-
+#define USE_SHA1       1
 #define AESKEYLEN      24              // AES key length in bytes (16, 24, or 32)
 
 typedef unsigned char  uchar;
