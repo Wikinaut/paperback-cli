@@ -399,7 +399,7 @@ int Saverestoredfile(int slot,int force) {
   // Restore old modification date and time.
 #ifdef _WIN32
   // open HANDLE and set file time
-  handleFile=CreateFile(pb_outfile,GENERIC_WRITE,0,NULL,
+  HANDLE handleFile=CreateFile(pb_outfile,GENERIC_WRITE,0,NULL,
       CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
   if (handleFile==INVALID_HANDLE_VALUE) {
     if (bufout!=NULL) 
