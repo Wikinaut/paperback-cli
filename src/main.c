@@ -311,7 +311,7 @@ int arguments (int ac, char **av) {
         fprintf (stderr, "error: no input file given\n");
         return MODE_HELP;
     }
-    if (mode == MODE_ENCODE && strlen (pb_outfile) == 0) {
+    if (strlen (pb_outfile) == 0) {
         fprintf (stderr, "error: no output file given\n");
         return MODE_HELP;
     }
