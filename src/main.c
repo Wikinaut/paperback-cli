@@ -92,10 +92,17 @@ void dhelp (const char *exe);
 void dversion();
 void nextBitmap (char *path);
 
+// Enumerator types
+enum Mode {
+  MODE_ENCODE,
+  MODE_DECODE,
+  MODE_VERSION,
+  MODE_HELP
+};
 
 
 
-int main(int argc, char ** argv) {
+int main (int argc, char ** argv) {
     // set values needed for cli version
     pb_autosave = 1;
     
@@ -110,8 +117,8 @@ int main(int argc, char ** argv) {
     pb_printheader = 0;
     pb_printborder = 0;
 
-    bool isEncode = arguments(argc, argv);
-    if (isEncode) {
+    int mode = arguments (argc, argv);
+    if (mode == MODE_ENCODE) {
         printf ("Encoding %s to create %s\n"
                 "DPI: %d\n"
                 "Dot percent: %d\n"
@@ -127,7 +134,7 @@ int main(int argc, char ** argv) {
             Nextdataprintingstep (&pb_printdata);
         }
     }
-    else {
+    else if (mode == MODE_DECODE) {
         char drv[MAXDRIVE],dir[MAXDIR],nam[MAXFILE],ext[MAXEXT],path[MAXPATH+32];
         fnsplit (pb_infile, drv, dir, nam, ext);
         int i;
@@ -144,6 +151,12 @@ int main(int argc, char ** argv) {
           sprintf(path,"%s%s%s%s",drv,dir,nam,ext);
           nextBitmap (path);
         }
+    }
+    else if (mode == MODE_VERSION) {
+      dversion(argv[0]);
+    }
+    else {
+      dhelp(argv[0]);
     }
 
     return 0;
@@ -182,7 +195,7 @@ inline void dhelp (const char *exe) {
             "\t-b, --border         Print a black border around the page\n"
             "\t-v, --version        Display version and information about that version\n"
             "\t-h, --help           Display all arguments and program description\n\n",
-            "\nEncodes or decodes high-density printable file backups.",
+            "\nEncodes or decodes high-density printable file backups.\n",
             exe,
             exe,
             exe);
@@ -202,7 +215,7 @@ inline void dversion() {
             "Bzip2 data compression:\n"
             "Copyright © 1996-2010 Julian R. Seward (see sources)\n\n"
             "AES and SHA code:\n"
-            "Copyright © 1998-2010, Brian Gladman (3-clause BSD)",
+            "Copyright © 1998-2010, Brian Gladman (3-clause BSD)\n",
             VERSIONHI, VERSIONLO);
 }
 
@@ -210,11 +223,11 @@ inline void dversion() {
 
 int arguments (int ac, char **av) {
     bool is_ok = true;
-    int displayhelp = 0, displayversion = 0, isencode;
+    int mode = MODE_HELP;
     struct option long_options[] = {
         // options that set flags
-        {"encode",      no_argument, &isencode,    1},
-        {"decode",      no_argument, &isencode,    0},
+        {"encode",      no_argument, &mode, MODE_ENCODE},
+        {"decode",      no_argument, &mode, MODE_DECODE},
         // options that assign values in switch
         {"input",       required_argument, NULL,  'i'},
         {"output",      required_argument, NULL,  'o'},
@@ -284,61 +297,50 @@ int arguments (int ac, char **av) {
                   pb_printborder = atoi(optarg);
                 break;
             case 'v':
-                if (optarg != NULL)
-                  displayversion = true;
-                break;
+                // as soon as -v encountered, return version mode
+                return MODE_VERSION;
             case 'h':
-                if (optarg != NULL)
-                  displayhelp = true;
-                break;
+                // as soon as -h encountered, return help mode
+                return MODE_HELP;
             default:
-                exit (EXIT_FAILURE);
+                // as soon as unknown flag encountered, return help mode
+                return MODE_HELP;
         }
-    }
-    if (displayhelp) {
-        dhelp (av[0]);
-        exit(EXIT_SUCCESS);
-    }
-    if (displayversion) {
-        dversion();
-        exit(EXIT_SUCCESS);
     }
     if (strlen (pb_infile) == 0) {
         fprintf (stderr, "error: no input file given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
-    if (strlen (pb_outfile) == 0) {
+    if (mode == MODE_ENCODE && strlen (pb_outfile) == 0) {
         fprintf (stderr, "error: no output file given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
     if (pb_npages < 0 || pb_npages > 9999) {
         fprintf (stderr, "error: invalid number of pages given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
     if (pb_dotpercent < 50 || pb_dotpercent > 100) {
         fprintf (stderr, "error: invalid dotsize given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
     if (pb_dpi < 40 || pb_dpi > 600) {
         fprintf (stderr, "error: invalid DPI given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
     if (pb_redundancy < 2 || pb_redundancy > 10) {
         fprintf (stderr, "error: invalid redundancy given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
     if (pb_printheader < 0 || pb_printheader > 1) {
         fprintf (stderr, "error: invalid header setting given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
     if (pb_printborder < 0 || pb_printborder > 1) {
         fprintf (stderr, "error: invalid border setting given\n");
-        is_ok = false;
+        return MODE_HELP;
     }
-    if ( ! is_ok) {
-        exit(EXIT_FAILURE);
-    }
-    return isencode;
+    
+    return mode;
 }
 
 
