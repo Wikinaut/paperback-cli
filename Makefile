@@ -14,5 +14,5 @@ main: $(SDIR)/main.c $(SDIR)/paperbak.c $(SDIR)/Printer.c $(SDIR)/Scanner.c $(SD
 
 
 clean:
-	rm $(EX) *.o *.log 
+	rm -f $(EX) *.o *.log 
 
