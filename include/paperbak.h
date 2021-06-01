@@ -206,8 +206,8 @@ typedef struct t_printdata {           // Print control structure
 } t_printdata;
 
 
-int       pb_resx, pb_resy;            // Printer resolution, dpi (may be 0!)
-t_printdata pb_printdata;          // Print control structure
+extern int       pb_resx, pb_resy;            // Printer resolution, dpi (may be 0!)
+extern t_printdata pb_printdata;          // Print control structure
 
 void   Initializeprintsettings(void);
 void   Closeprintsettings(void);
@@ -263,8 +263,8 @@ typedef struct t_procdata {            // Descriptor of processed data
   int            nrestored;            // Page statistics: restored bytes
 } t_procdata;
 
-int       pb_orientation;          // Orientation of bitmap (-1: unknown)
-t_procdata pb_procdata;            // Descriptor of processed data
+extern int       pb_orientation;          // Orientation of bitmap (-1: unknown)
+extern t_procdata pb_procdata;            // Descriptor of processed data
 
 void   Nextdataprocessingstep(t_procdata *pdata);
 void   Freeprocdata(t_procdata *pdata);
@@ -308,7 +308,7 @@ typedef struct t_fproc {               // Descriptor of processed file
   int            rempages[8];          // 1-based list of remaining pages
 } t_fproc;
 
-t_fproc   pb_fproc[NFILE];             // Processed file
+extern t_fproc   pb_fproc[NFILE];             // Processed file
 
 void   Closefproc(int slot);
 int    Startnextpage(t_superblock *superblock);
@@ -326,29 +326,29 @@ int    Decodebitmap(char *path);
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// USER INTERFACE ////////////////////////////////
 
-char      pb_infile[MAXPATH];      // Last selected file to read
-char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
-char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
-char      pb_outfile[MAXPATH];     // Last selected data file to save
+extern char      pb_infile[MAXPATH];      // Last selected file to read
+extern char      pb_outbmp[MAXPATH];      // Last selected bitmap to save
+extern char      pb_inbmp[MAXPATH];       // Last selected bitmap to read
+extern char      pb_outfile[MAXPATH];     // Last selected data file to save
  
-char      pb_password[PASSLEN];    // Encryption password
+extern char      pb_password[PASSLEN];    // Encryption password
  
-int       pb_dpi;                  // Dot raster, dots per inch
-int       pb_dotpercent;           // Dot size, percent of dpi
-int       pb_compression;          // 0: none, 1: fast, 2: maximal
-int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
-int       pb_printheader;          // Print header and footer
-int       pb_printborder;          // Border around bitmap
-int       pb_autosave;             // Autosave completed files
-int       pb_bestquality;          // Determine best quality
-int       pb_encryption;           // Encrypt data before printing
-int       pb_opentext;             // Enter passwords in open text
+extern int       pb_dpi;                  // Dot raster, dots per inch
+extern int       pb_dotpercent;           // Dot size, percent of dpi
+extern int       pb_compression;          // 0: none, 1: fast, 2: maximal
+extern int       pb_redundancy;           // Redundancy (NGROUPMIN..NGROUPMAX)
+extern int       pb_printheader;          // Print header and footer
+extern int       pb_printborder;          // Border around bitmap
+extern int       pb_autosave;             // Autosave completed files
+extern int       pb_bestquality;          // Determine best quality
+extern int       pb_encryption;           // Encrypt data before printing
+extern int       pb_opentext;             // Enter passwords in open text
   
-int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
-int       pb_marginleft;           // Left printer page margin
-int       pb_marginright;          // Right printer page margin
-int       pb_margintop;            // Top printer page margin
-int       pb_marginbottom;         // Bottom printer page margin
+extern int       pb_marginunits;          // 0:undef, 1:inches, 2:millimeters
+extern int       pb_marginleft;           // Left printer page margin
+extern int       pb_marginright;          // Right printer page margin
+extern int       pb_margintop;            // Top printer page margin
+extern int       pb_marginbottom;         // Bottom printer page margin
   
 
 ////////////////////////////////////////////////////////////////////////////////
